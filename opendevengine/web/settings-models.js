@@ -17,10 +17,11 @@ const isRemote = (value) => {
   return !(host === "localhost" || host === "[::1]" || /^127(\.\d{1,3}){3}$/.test(host));
 };
 
-// Creates (or reuses) a local Ollama profile for a discovered model and assigns it to a role.
-export async function useDiscoveredModel(request, role, model) {
+// Creates (or reuses) an Ollama profile for a discovered model and assigns it to a role. `endpoint` is
+// the address discovery reported (the server's configured Ollama).
+export async function useDiscoveredModel(request, role, model, endpoint = OLLAMA) {
   const listed = await request("/api/provider-profiles");
-  let profile = (listed.profiles || []).find((p) => p.version?.adapter === "ollama" && p.version?.model === model.name && p.version?.endpoint === OLLAMA);
+  let profile = (listed.profiles || []).find((p) => p.version?.adapter === "ollama" && p.version?.model === model.name && p.version?.endpoint === endpoint);
   if (!profile) {
     let config;
     if (wantsEmbedding(role)) {
@@ -30,7 +31,7 @@ export async function useDiscoveredModel(request, role, model) {
       // Local inference can be slow on CPU-only machines; use the longest allowed limit, as `--model` does.
       config = { capabilities: CHAT_CAPS, timeout_seconds: 600, context_limit: model.context_length ?? 8192, max_output_tokens: 1024 };
     }
-    profile = await request("/api/provider-profiles", "POST", { name: model.name, adapter: "ollama", endpoint: OLLAMA, model: model.name, config });
+    profile = await request("/api/provider-profiles", "POST", { name: model.name, adapter: "ollama", endpoint, model: model.name, config });
   }
   await request("/api/settings/model-roles", "PATCH", { assignments: { [role]: profile.id } });
   return profile;
@@ -218,7 +219,9 @@ export async function mountModels(host, { request, onChange = null }) {
     sources.append(row);
     return row;
   };
-  const ollamaRow = sourceRow("Ollama", discovered.reachable ? "Runs models on this computer." : "Not running. Start Ollama, then Retry.",
+  const ollamaBase = discovered.base_url ?? OLLAMA;
+  const ollamaWhere = isRemote(ollamaBase) ? `Runs models on ${new URL(ollamaBase).host}.` : "Runs models on this computer.";
+  const ollamaRow = sourceRow("Ollama", discovered.reachable ? ollamaWhere : "Not running. Start Ollama, then Retry.",
     discovered.reachable ? { text: `Connected · ${models.length} ${models.length === 1 ? "model" : "models"}`, tone: "good" } : { text: "Not running", tone: "warn" });
   button(ollamaRow, discovered.reachable ? "Refresh" : "Retry", () => mountModels(host, { request, onChange }));
 
@@ -265,7 +268,7 @@ export async function mountModels(host, { request, onChange = null }) {
       select.disabled = true;
       error.textContent = "";
       try {
-        if (value.startsWith("m:")) await useDiscoveredModel(request, role, models.find((m) => m.name === value.slice(2)));
+        if (value.startsWith("m:")) await useDiscoveredModel(request, role, models.find((m) => m.name === value.slice(2)), ollamaBase);
         else await request("/api/settings/model-roles", "PATCH", { assignments: { [role]: value ? value.slice(2) : null } });
         saved = value;
         if (value.startsWith("m:")) refresh();

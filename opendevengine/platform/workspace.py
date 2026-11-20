@@ -17,7 +17,7 @@ def build_workspace_summary(index, model, platform, *, now):
                     'limited_count': sum(bool(s.limited) for s in snapshots), 'repos_endpoint': '/api/repos',
                     'github': {'status': 'not_available', 'reason': 'GitHub connection is not available in this version. Only bundled samples or explicit local checkouts are indexed.'}},
         'providers': {'answer': {'status': 'configured' if model else 'not_configured', 'adapter': 'ollama' if model else None,
-                                 'model': model.model if model else None, 'destination': 'loopback' if model else None},
+                                 'model': model.model if model else None, 'destination': getattr(model, 'destination', 'loopback') if model else None},
                       'profiles': {'status': 'not_available', 'reason': 'Provider profiles are not available in this version. Start with --model NAME to use a local Ollama model.'}},
         'execution': {'status': 'not_available', 'reason': 'Implementation sessions are not available in this version. OpenDevEngine is read-only.'},
         'storage': {'persistent': platform.store.persistent if platform else False, 'schema_version': platform.store.schema_version() if platform else None, 'status': 'ok' if platform else 'disabled'},
@@ -58,7 +58,7 @@ def build_health(index, model, platform, *, now):
                 'secrets': {'status': 'available' if secret_status.available else 'unavailable', 'backend': secret_status.backend,
                             'code': None if secret_status.available else 'secret_store_unavailable'},
                 'model': {'status': 'configured' if model else 'not_configured', 'adapter': 'ollama' if model else None,
-                          'destination': 'loopback' if model else None, 'probed': False}}, 'recent_failures': failures}
+                          'destination': getattr(model, 'destination', 'loopback') if model else None, 'probed': False}}, 'recent_failures': failures}
 
 
 def apply_service_health(result, services):

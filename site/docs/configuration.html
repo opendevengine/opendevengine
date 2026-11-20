@@ -40,14 +40,14 @@
 </tr>
 <tr><td><code>--model NAME</code></td><td>Local Ollama model for unassigned Ask/planning roles; omitted: no CLI-seeded model.</td>
 </tr>
-<tr><td><code>--ollama-port NUMBER</code></td><td>Ollama loopback port; default 11434.</td>
+<tr><td><code>--ollama-url URL</code></td><td>Ollama address; default <code>http://127.0.0.1:11434</code>, or <code>OPENDEVENGINE_OLLAMA_URL</code> when set. Use an IP address, not a host name. That IP counts as local. See <a href="models.html#other-machine">Ollama on another machine</a>.</td>
 </tr>
 <tr><td><code>--repo NAME=PATH</code></td><td>Index an explicit local checkout at HEAD; repeat up to eight times. Omitted: bundled sample sources.</td>
 </tr>
 </tbody>
 </table>
 </div>
-<p>Check your installed version with <code>python3 -m opendevengine --help</code>. There is no host-binding option: the server binds to <code>127.0.0.1</code>. No environment variables are needed for the setup in this manual.</p>
+<p>Check your installed version with <code>python3 -m opendevengine --help</code>. There is no host-binding option: the server binds to <code>127.0.0.1</code>. No environment variables are needed for the setup in this manual; <code>OPENDEVENGINE_OLLAMA_URL</code> is the optional environment form of <code>--ollama-url</code>, and the flag wins when both are set.</p>
 <h2 id="storage">What is stored</h2>
 <p>The selected data directory holds <code>opendevengine.sqlite3</code>, with SQLite WAL sidecars during use. Persistent records include conversations, immutable plan versions, indexed source, settings and session artifacts. Treat this directory as private source-bearing data. Credentials themselves are in the OS vault, referenced by ID.</p>
 <p>The current implementation stores session artifacts in SQLite. Runtime/session-owned files may also exist below the data directory. Session purge removes retained content from active records; it does not erase backups or remove independent plans and repository indexes.</p>

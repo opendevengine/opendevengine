@@ -648,7 +648,9 @@ function modelCard(data, health) {
   const model = typeof answer.model === "string" ? answer.model : "unknown model";
   const destination = answer.destination === "loopback"
     ? "Destination: loopback — prompts go to Ollama on this computer."
-    : "Destination unknown.";
+    : answer.destination === "configured_host"
+      ? "Destination: the Ollama machine set with --ollama-url — prompts and source go there."
+      : "Destination unknown.";
   const probed = field(health, "components", "model", "probed") === false
     ? "Not checked yet: OpenDevEngine does not contact the model until you ask a question." : null;
   return card("Answer model", status, `${adapter} model ${model}.`, destination, probed);

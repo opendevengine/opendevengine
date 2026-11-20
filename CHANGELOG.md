@@ -7,6 +7,9 @@ All notable user-visible changes are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Ollama on another machine:** `--ollama-url` (or `OPENDEVENGINE_OLLAMA_URL`) points
+  discovery, `--model` and new Ollama profiles at another computer you own, such as a GPU
+  box on Tailscale. Its IP address is treated as local, including in local-only mode.
 - Open-source project files: contributing guide, security policy, code of conduct,
   third-party notices, issue and pull request templates, and CI for Python 3.10–3.13 on
   Linux and macOS plus UI tests and a package build check.
@@ -24,6 +27,9 @@ All notable user-visible changes are recorded here. The format follows
   only from `main` or by manual dispatch.
 - Indexing also pauses before the data volume would drop below 1 GiB free, and the
   Repositories page explains how to recover from a disk-limit pause.
+
+### Changed
+- `--ollama-port` is replaced by `--ollama-url`.
 
 ### Fixed
 - Ask keeps a question that is waiting for a repository choice across reloads and restarts,

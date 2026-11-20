@@ -115,9 +115,9 @@ export async function renderSetup(host, { request, onDone = () => {}, onRoles = 
       button(models.body, "Use these", async (event, control) => {
         control.disabled = true;
         try {
-          await useDiscoveredModel(request, "ask", chat);
-          await useDiscoveredModel(request, "planning", chat);
-          if (embed) await useDiscoveredModel(request, "embedding", embed);
+          await useDiscoveredModel(request, "ask", chat, discovered.base_url);
+          await useDiscoveredModel(request, "planning", chat, discovered.base_url);
+          if (embed) await useDiscoveredModel(request, "embedding", embed, discovered.base_url);
           again();
         } catch (error) {
           output.textContent = `Could not set models: ${error.message}`;

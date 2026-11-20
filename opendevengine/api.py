@@ -6,7 +6,7 @@ import re
 from urllib.parse import parse_qs, unquote
 
 from .platform.errors import PlatformError, NotFound
-from .providers.discovery import DEFAULT_OLLAMA, discover_ollama, probe_embedding_dimensions
+from .providers.discovery import discover_ollama, probe_embedding_dimensions
 
 
 @dataclass
@@ -135,7 +135,7 @@ class FeatureAPI:
                     owner=q.get('owner'), index_enabled=None if selected is None else selected == 'true'))
             if path == '/api/provider-profiles/discover':
                 q = query_fields(raw_query, {'base_url'})
-                return APIResponse(200, discover_ollama(q.get('base_url', DEFAULT_OLLAMA), transport=self.providers.transport))
+                return APIResponse(200, discover_ollama(q.get('base_url'), transport=self.providers.transport))
             if path == '/api/provider-profiles':
                 query_fields(raw_query, set())
                 return APIResponse(200, {'profiles': self.providers.list_profiles()})
@@ -171,7 +171,7 @@ class FeatureAPI:
         if path == '/api/provider-profiles/discover/dimensions' and method == 'POST':
             data = fields(body, {'base_url', 'model'}, {'model'})
             return APIResponse(200, {'dimensions': probe_embedding_dimensions(
-                data.get('base_url', DEFAULT_OLLAMA), data['model'], transport=self.providers.transport)})
+                data.get('base_url'), data['model'], transport=self.providers.transport)})
         if path == '/api/provider-profiles' and method == 'POST':
             data = dict(fields(body, {'name', 'adapter', 'endpoint', 'model', 'config', 'secret_value'},
                                {'name', 'adapter', 'endpoint', 'model'}))

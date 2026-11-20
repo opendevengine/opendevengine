@@ -30,7 +30,7 @@
 <p>The server binds to <code>127.0.0.1</code> and checks request hosts and origins. It has no login and must not be exposed on a network or the internet. This is not a shared-host or multi-tenant service.</p>
 <h2 id="credentials">Credentials and source</h2>
 <p>GitHub App keys and provider API keys live in macOS Keychain, Linux Secret Service or Windows Credential Manager. If secure storage is unavailable, setup is blocked. There is no plaintext fallback.</p>
-<p>Local-only mode is on by default. Sending source to a remote model requires disabling it and opting the relevant provider or execution profile in. Connection tests send synthetic content. The selected data directory contains source-bearing records, so protect it and any backups.</p>
+<p>Local-only mode is on by default. Sending source to a remote model requires disabling it and opting the relevant provider or execution profile in. The one exception you can set is <code>--ollama-url</code>: its IP address is treated as local, so only point it at a machine you control. Connection tests send synthetic content. The selected data directory contains source-bearing records, so protect it and any backups.</p>
 <h2 id="read">Read-only Ask and indexing</h2>
 <p>Ask reads indexed snapshots and calls configured models; it never executes repository commands or changes files. Indexing reads committed source without running install or build scripts, excluding credential-like and generated files. Exclusions reduce exposure; inspect content before enabling external processing.</p>
 <h2 id="execution">Precisely what is isolated</h2>

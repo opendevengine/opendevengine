@@ -1,18 +1,18 @@
-"""Discover models installed in a loopback Ollama server; never contacts remote hosts."""
+"""Discover models in the configured Ollama server; never contacts any other host."""
 import json
 from urllib.parse import urlsplit
 from .transport import TransportFailure, TransportRequest
-from .validation import is_loopback_host
-
-DEFAULT_OLLAMA = 'http://127.0.0.1:11434'
+from .validation import is_local_host, ollama_url
 EMBEDDING_FAMILIES = {'bert', 'nomic-bert'}
 
 
 def _base(base_url):
+    if base_url is None:
+        base_url = ollama_url()
     if not isinstance(base_url, str) or len(base_url) > 200:
         raise ValueError('Invalid discovery address.')
     parts = urlsplit(base_url)
-    if parts.scheme not in ('http', 'https') or not is_loopback_host(parts.hostname or '') \
+    if parts.scheme not in ('http', 'https') or not is_local_host(parts.hostname or '') \
             or parts.path not in ('', '/') or parts.query or parts.fragment or parts.username:
         raise ValueError('Discovery is limited to a local Ollama address.')
     return base_url.rstrip('/')
@@ -27,13 +27,13 @@ def _call(transport, method, url, body=None, timeout=10.0):
     return json.loads(response.body)
 
 
-def discover_ollama(base_url=DEFAULT_OLLAMA, *, transport):
+def discover_ollama(base_url=None, *, transport):
     base = _base(base_url)
     try:
         tags = _call(transport, 'GET', base + '/api/tags')
         running = _call(transport, 'GET', base + '/api/ps')
     except (TransportFailure, ValueError):
-        return {'reachable': False, 'models': [], 'error_code': 'provider_unreachable'}
+        return {'reachable': False, 'base_url': base, 'models': [], 'error_code': 'provider_unreachable'}
     loaded = {m.get('name'): m for m in running.get('models', []) if isinstance(m, dict)}
     models = []
     for item in tags.get('models', []):
@@ -46,7 +46,7 @@ def discover_ollama(base_url=DEFAULT_OLLAMA, *, transport):
                        'context_length': live.get('context_length') if live else None,
                        'embedding': bool(families & EMBEDDING_FAMILIES) or 'embed' in name,
                        'loaded': live is not None, 'gpu': (live.get('size_vram', 0) > 0) if live else None})
-    return {'reachable': True, 'models': models, 'error_code': None}
+    return {'reachable': True, 'base_url': base, 'models': models, 'error_code': None}
 
 
 def probe_embedding_dimensions(base_url, model, *, transport):

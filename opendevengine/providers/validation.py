@@ -2,6 +2,7 @@
 import ipaddress
 import json
 import math
+import os
 from urllib.parse import urlsplit
 
 from .errors import ProviderValidationError
@@ -10,6 +11,8 @@ ADAPTERS = ('ollama', 'openai_compatible', 'claude_cli')
 ROLES = ('ask', 'planning', 'summary', 'embedding')
 CAPABILITIES = ('chat', 'structured_output', 'embeddings')
 MESSAGE_ROLES = ('system', 'user', 'assistant')
+OLLAMA_URL_ENV = 'OPENDEVENGINE_OLLAMA_URL'
+DEFAULT_OLLAMA = 'http://127.0.0.1:11434'
 
 SPEC_KEYS = {'name', 'adapter', 'endpoint', 'model', 'config'}
 CONFIG_DEFAULTS = {'timeout_seconds': 60, 'max_output_tokens': 1024, 'context_limit': 8192,
@@ -60,6 +63,51 @@ def is_loopback_host(host):
     return address == ipaddress.ip_address('::1')
 
 
+def parse_ollama_url(value):
+    """Normalize an Ollama base URL: http(s), ``localhost`` or a literal IP, no path or credentials."""
+    if not isinstance(value, str) or not 1 <= len(value) <= 200 or value != value.strip():
+        raise ValueError('Use an address such as http://127.0.0.1:11434.')
+    try:
+        parts = urlsplit(value)
+        port = parts.port
+    except ValueError:
+        raise ValueError('Use an address such as http://127.0.0.1:11434.') from None
+    scheme, host = parts.scheme.lower(), (parts.hostname or '').lower()
+    if scheme not in ('http', 'https') or not host or parts.username is not None or parts.password is not None \
+            or parts.path not in ('', '/') or parts.query or parts.fragment:
+        raise ValueError('Use an address such as http://127.0.0.1:11434.')
+    if host != 'localhost':
+        # A literal address cannot be redirected by DNS after the user vouched for it.
+        try:
+            address = ipaddress.ip_address(host)
+        except ValueError:
+            raise ValueError('Use an IP address for Ollama, not a host name.') from None
+        if address.is_unspecified or address.is_multicast:
+            raise ValueError('Use the IP address of the machine running Ollama.')
+    netloc = f'[{host}]' if ':' in host else host
+    if port is not None:
+        netloc += f':{port}'
+    return f'{scheme}://{netloc}'
+
+
+def ollama_url():
+    """The configured Ollama base URL; an unset or invalid setting means loopback only."""
+    try:
+        return parse_ollama_url(os.environ[OLLAMA_URL_ENV])
+    except (KeyError, ValueError):
+        return DEFAULT_OLLAMA
+
+
+def is_local_host(host):
+    """Loopback, or the one address the user configured for Ollama (e.g. their own machine on a VPN)."""
+    if is_loopback_host(host):
+        return True
+    try:
+        return ipaddress.ip_address(host) == ipaddress.ip_address(urlsplit(ollama_url()).hostname)
+    except ValueError:
+        return False
+
+
 def validate_endpoint(value):
     """Return the normalized endpoint base URL (no trailing slash)."""
     if not isinstance(value, str) or not 1 <= len(value) <= 2048 or value != value.strip():
@@ -77,7 +125,7 @@ def validate_endpoint(value):
         raise fail('endpoint')
     if parts.username is not None or parts.password is not None or parts.query or parts.fragment:
         raise fail('endpoint')
-    if scheme == 'http' and not is_loopback_host(host):
+    if scheme == 'http' and not is_local_host(host):
         raise fail('endpoint')
     path = parts.path.rstrip('/')
     if any(segment in ('.', '..') for segment in path.split('/')) or '%' in path:
@@ -91,7 +139,7 @@ def validate_endpoint(value):
 def destination_for(endpoint):
     parts = urlsplit(endpoint)
     host = parts.hostname or ''
-    return {'kind': 'local' if is_loopback_host(host) else 'remote',
+    return {'kind': 'local' if is_local_host(host) else 'remote',
             'host': parts.netloc}
 
 
