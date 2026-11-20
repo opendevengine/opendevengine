@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "opendevengine"
+version = "0.1.0"
+description = "Self-hosted repository-aware planning and implementation workspace"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "OpenDevEngine contributors" }]
+keywords = ["github", "code-search", "coding-agent", "self-hosted", "pull-requests", "ollama"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/opendevengine/opendevengine"
+Issues = "https://github.com/opendevengine/opendevengine/issues"
+Changelog = "https://github.com/opendevengine/opendevengine/blob/main/CHANGELOG.md"
+Security = "https://github.com/opendevengine/opendevengine/security/policy"
+
+[project.optional-dependencies]
+credentials = ["keyring>=25.6,<26"]
+github = ["cryptography>=46,<51"]
+vectors = ["sqlite-vec>=0.1.9,<0.2", "apsw>=3.46,<4"]
+full = ["keyring>=25.6,<26", "cryptography>=46,<51", "sqlite-vec>=0.1.9,<0.2", "apsw>=3.46,<4"]
+
+[project.scripts]
+opendevengine = "opendevengine.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["opendevengine*"]
+
+[tool.setuptools.package-data]
+opendevengine = ["web/*", "examples/**/*"]

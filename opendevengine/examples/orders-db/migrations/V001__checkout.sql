@@ -1,0 +1,14 @@
+CREATE TABLE orders (
+    id VARCHAR(36) PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
+    items_json TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE order_outbox (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    topic VARCHAR(100) NOT NULL,
+    order_id VARCHAR(36) NOT NULL REFERENCES orders(id),
+    payload TEXT NOT NULL,
+    published_at TIMESTAMP
+);

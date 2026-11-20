@@ -1,0 +1,192 @@
+{
+  "contract": "opendevengine.m0/1",
+  "status": "proposed",
+  "description": "HTTP API interface examples. Fixtures are examples, not a substitute for the real backend. Values such as timestamps, sizes and model names are illustrative; key sets, types and enum values are normative per docs/contracts/README.md.",
+  "legacy": {
+    "repos_demo": {
+      "repos": [
+        {"name": "storefront-web", "revision": "0ed35bc41b8489e0ee651b9a2868efeab231d4049c807448414e9b8e57479316", "files": 1, "indexed_at": "2026-11-13T15:21:52.579534+00:00", "demo": true, "limited": false},
+        {"name": "orders-api", "revision": "f97de54ef16ee6000fecf6d83676df89c24952132004a859a3dc49c8cc202950", "files": 4, "indexed_at": "2026-11-13T15:21:52.579534+00:00", "demo": true, "limited": false},
+        {"name": "orders-db", "revision": "715ca263a149d8dcfa843da8b3a6ab060dfde58d8f0367045f23086438726c0b", "files": 1, "indexed_at": "2026-11-13T15:21:52.579534+00:00", "demo": true, "limited": false},
+        {"name": "notifications-worker", "revision": "e80056b1f7d871354f845cde40219494a1cc4afa0cb691bb667d63884e03b80b", "files": 1, "indexed_at": "2026-11-13T15:21:52.579534+00:00", "demo": true, "limited": false}
+      ],
+      "model": null
+    },
+    "ask_search_demo": {
+      "mode": "search",
+      "sections": [],
+      "note": "",
+      "sources": [
+        {"id": 1, "repo": "orders-db", "revision": "715ca263a149d8dcfa843da8b3a6ab060dfde58d8f0367045f23086438726c0b", "path": "migrations/V001__checkout.sql", "start": 1, "end": 12},
+        {"id": 2, "repo": "orders-db", "revision": "715ca263a149d8dcfa843da8b3a6ab060dfde58d8f0367045f23086438726c0b", "path": "migrations/V001__checkout.sql", "start": 10, "end": 14}
+      ],
+      "matches": []
+    },
+    "ask_bad_request": {"error": "Enter a question and select valid repositories."},
+    "forbidden_host": {"error": "Use the local URL printed by OpenDevEngine."}
+  },
+  "workspace": {
+    "demo_memory": {
+      "contract": "opendevengine.workspace/m0.1",
+      "generated_at": "2026-11-13T15:30:00.000Z",
+      "product": "OpenDevEngine",
+      "mode": "demo",
+      "catalog": {
+        "source": "demo_fixtures",
+        "repository_count": 4,
+        "limited_count": 0,
+        "repos_endpoint": "/api/repos",
+        "github": {"status": "not_available", "reason": "GitHub connection is not available in this version. Only bundled samples or explicit local checkouts are indexed."}
+      },
+      "providers": {
+        "answer": {"status": "not_configured", "adapter": null, "model": null, "destination": null},
+        "profiles": {"status": "not_available", "reason": "Provider profiles are not available in this version. Start with --model NAME to use a local Ollama model."}
+      },
+      "execution": {"status": "not_available", "reason": "Implementation sessions are not available in this version. OpenDevEngine is read-only."},
+      "storage": {"persistent": false, "schema_version": 1, "status": "ok"},
+      "secrets": {"backend": "unavailable", "available": false, "reason": "No secure credential store is configured. Credential setup is disabled."},
+      "navigation": [
+        {"id": "ask", "label": "Ask", "href": "#/ask", "status": "available"},
+        {"id": "repositories", "label": "Repositories", "href": "#/repositories", "status": "read_only"},
+        {"id": "settings", "label": "Settings", "href": "#/settings", "status": "read_only"}
+      ]
+    },
+    "local_with_model_persistent": {
+      "contract": "opendevengine.workspace/m0.1",
+      "generated_at": "2026-11-13T15:30:00.000Z",
+      "product": "OpenDevEngine",
+      "mode": "local",
+      "catalog": {
+        "source": "local_checkouts",
+        "repository_count": 3,
+        "limited_count": 1,
+        "repos_endpoint": "/api/repos",
+        "github": {"status": "not_available", "reason": "GitHub connection is not available in this version. Only bundled samples or explicit local checkouts are indexed."}
+      },
+      "providers": {
+        "answer": {"status": "configured", "adapter": "ollama", "model": "example-model:latest", "destination": "loopback"},
+        "profiles": {"status": "not_available", "reason": "Provider profiles are not available in this version. Start with --model NAME to use a local Ollama model."}
+      },
+      "execution": {"status": "not_available", "reason": "Implementation sessions are not available in this version. OpenDevEngine is read-only."},
+      "storage": {"persistent": true, "schema_version": 1, "status": "ok"},
+      "secrets": {"backend": "unavailable", "available": false, "reason": "No secure credential store is configured. Credential setup is disabled."},
+      "navigation": [
+        {"id": "ask", "label": "Ask", "href": "#/ask", "status": "available"},
+        {"id": "repositories", "label": "Repositories", "href": "#/repositories", "status": "read_only"},
+        {"id": "settings", "label": "Settings", "href": "#/settings", "status": "read_only"}
+      ]
+    },
+    "no_platform": {
+      "contract": "opendevengine.workspace/m0.1",
+      "generated_at": "2026-11-13T15:30:00.000Z",
+      "product": "OpenDevEngine",
+      "mode": "demo",
+      "catalog": {
+        "source": "demo_fixtures",
+        "repository_count": 4,
+        "limited_count": 0,
+        "repos_endpoint": "/api/repos",
+        "github": {"status": "not_available", "reason": "GitHub connection is not available in this version. Only bundled samples or explicit local checkouts are indexed."}
+      },
+      "providers": {
+        "answer": {"status": "not_configured", "adapter": null, "model": null, "destination": null},
+        "profiles": {"status": "not_available", "reason": "Provider profiles are not available in this version. Start with --model NAME to use a local Ollama model."}
+      },
+      "execution": {"status": "not_available", "reason": "Implementation sessions are not available in this version. OpenDevEngine is read-only."},
+      "storage": {"persistent": false, "schema_version": null, "status": "disabled"},
+      "secrets": {"backend": "unavailable", "available": false, "reason": "No secure credential store is configured. Credential setup is disabled."},
+      "navigation": [
+        {"id": "ask", "label": "Ask", "href": "#/ask", "status": "available"},
+        {"id": "repositories", "label": "Repositories", "href": "#/repositories", "status": "read_only"},
+        {"id": "settings", "label": "Settings", "href": "#/settings", "status": "read_only"}
+      ]
+    }
+  },
+  "health": {
+    "demo_memory": {
+      "contract": "opendevengine.health/m0.1",
+      "status": "ok",
+      "checked_at": "2026-11-13T15:30:00.000Z",
+      "components": {
+        "api": {"status": "ok"},
+        "index": {"status": "ok", "repository_count": 4, "persistent": false},
+        "storage": {"status": "ok", "persistent": false, "schema_version": 1, "expected_schema_version": 1, "size_bytes": 0},
+        "jobs": {"status": "ok", "counts": {"queued": 0, "leased": 0, "succeeded": 0, "failed": 0, "cancelled": 0, "needs_reconciliation": 0}, "expired_leases": 0, "oldest_queued_age_ms": null, "workers_running": 0},
+        "secrets": {"status": "unavailable", "backend": "unavailable", "code": "secret_store_unavailable"},
+        "model": {"status": "not_configured", "adapter": null, "destination": null, "probed": false}
+      },
+      "recent_failures": []
+    },
+    "persistent_ok": {
+      "contract": "opendevengine.health/m0.1",
+      "status": "ok",
+      "checked_at": "2026-11-13T15:30:00.000Z",
+      "components": {
+        "api": {"status": "ok"},
+        "index": {"status": "ok", "repository_count": 3, "persistent": false},
+        "storage": {"status": "ok", "persistent": true, "schema_version": 1, "expected_schema_version": 1, "size_bytes": 53248},
+        "jobs": {"status": "ok", "counts": {"queued": 1, "leased": 0, "succeeded": 4, "failed": 1, "cancelled": 0, "needs_reconciliation": 0}, "expired_leases": 0, "oldest_queued_age_ms": 1200, "workers_running": 0},
+        "secrets": {"status": "unavailable", "backend": "unavailable", "code": "secret_store_unavailable"},
+        "model": {"status": "configured", "adapter": "ollama", "destination": "loopback", "probed": false}
+      },
+      "recent_failures": [
+        {"job_id": "job_3f9a0c1d2e4b5a6978c0d1e2", "kind": "test.echo", "code": "timeout", "at": "2026-11-13T15:12:04.512Z"}
+      ]
+    },
+    "degraded_reconciliation": {
+      "contract": "opendevengine.health/m0.1",
+      "status": "degraded",
+      "checked_at": "2026-11-13T15:30:00.000Z",
+      "components": {
+        "api": {"status": "ok"},
+        "index": {"status": "ok", "repository_count": 4, "persistent": false},
+        "storage": {"status": "ok", "persistent": true, "schema_version": 1, "expected_schema_version": 1, "size_bytes": 57344},
+        "jobs": {"status": "degraded", "counts": {"queued": 0, "leased": 1, "succeeded": 2, "failed": 0, "cancelled": 0, "needs_reconciliation": 1}, "expired_leases": 1, "oldest_queued_age_ms": null, "workers_running": 0},
+        "secrets": {"status": "unavailable", "backend": "unavailable", "code": "secret_store_unavailable"},
+        "model": {"status": "not_configured", "adapter": null, "destination": null, "probed": false}
+      },
+      "recent_failures": [
+        {"job_id": "job_a1b2c3d4e5f60718293a4b5c", "kind": "test.external", "code": "lease_expired", "at": "2026-11-13T15:28:41.007Z"}
+      ]
+    },
+    "no_platform": {
+      "contract": "opendevengine.health/m0.1",
+      "status": "ok",
+      "checked_at": "2026-11-13T15:30:00.000Z",
+      "components": {
+        "api": {"status": "ok"},
+        "index": {"status": "ok", "repository_count": 4, "persistent": false},
+        "storage": {"status": "disabled", "persistent": false, "schema_version": null, "expected_schema_version": null, "size_bytes": null},
+        "jobs": {"status": "disabled", "counts": {"queued": 0, "leased": 0, "succeeded": 0, "failed": 0, "cancelled": 0, "needs_reconciliation": 0}, "expired_leases": 0, "oldest_queued_age_ms": null, "workers_running": 0},
+        "secrets": {"status": "unavailable", "backend": "unavailable", "code": "secret_store_unavailable"},
+        "model": {"status": "not_configured", "adapter": null, "destination": null, "probed": false}
+      },
+      "recent_failures": []
+    }
+  },
+  "errors": {
+    "_note": "Host-check (403) and unknown-route (404) failures are produced by the shared legacy dispatcher in M0 and keep the legacy bodies (legacy.forbidden_host, ui.legacy_fallback.workspace_response). Codes below are emitted by new routes or platform errors.",
+    "bad_request_query": {"status": 400, "body": {"error": "This endpoint does not accept query parameters.", "code": "bad_request"}},
+    "secret_store_unavailable": {"status": 503, "body": {"error": "No secure credential store is configured. Credential setup is disabled.", "code": "secret_store_unavailable"}},
+    "internal": {"status": 500, "body": {"error": "The request could not be completed.", "code": "internal"}}
+  },
+  "ui": {
+    "legacy_fallback": {
+      "description": "Pre-integration build: /api/workspace and /api/health are absent (legacy 404 body has no code). UI derives mode from /api/repos.",
+      "workspace_response": {"status": 404, "body": {"error": "Page not found."}},
+      "repos_response": {"$ref": "legacy.repos_demo"},
+      "expected": {
+        "mode": "demo",
+        "navigation_ids": ["ask", "repositories", "settings"],
+        "settings_message": "Status unavailable in this build."
+      }
+    },
+    "render_expectations": [
+      {"fixture": "workspace.demo_memory", "must_show": ["sample workspace / bundled example repositories label", "search-only answers with --model hint", "storage not persistent (in-memory)", "credential setup disabled", "GitHub and implementation sessions not available in this version"], "must_not_show": ["GitHub connected", "private repositories indexed", "session running", "enabled Start session or Connect GitHub button"]},
+      {"fixture": "workspace.local_with_model_persistent", "must_show": ["local workspace label", "Ollama model name with loopback destination", "persistent storage schema 1", "1 repository hit index limit"], "must_not_show": ["Sample workspace", "remote destination"]},
+      {"fixture": "health.degraded_reconciliation", "must_show": ["degraded status with text (not color only)", "1 job needs reconciliation", "1 expired lease"], "must_not_show": ["job payload or message text", "repository names in health view"]},
+      {"fixture": "health.no_platform", "must_show": ["storage disabled", "jobs disabled"], "must_not_show": ["error state for storage"]},
+      {"fixture": "ui.legacy_fallback", "must_show": ["Ask, Repositories and Settings navigation", "Settings view: Status unavailable in this build"], "must_not_show": ["storage, secret or job status values invented by the UI"]}
+    ]
+  }
+}

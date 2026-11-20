@@ -1,0 +1,18 @@
+{
+  "path_tasks": [
+    {"prompt":"Fix confirmation retries in src/worker.py without changing delivery behavior", "expected":["demo:mail-dispatch"], "pins":["demo:mail-dispatch"]},
+    {"prompt":"Explain read/write I/O handling for parcel tracking in client/server code", "expected":["demo:shipping"], "pins":["demo:shipping"]},
+    {"prompt":"Fix src/invoice.py so recurring payment credit notes retain their invoice links", "expected":["demo:billing"], "pins":["demo:billing"]},
+    {"prompt":"Explain timezone conversion in lib/calendar.py and preserve reminder timestamps", "expected":["demo:calendar"], "pins":["demo:calendar"]},
+    {"prompt":"Investigate password reset session expiry in src/auth.py for client/server requests", "expected":["demo:identity"], "pins":["demo:identity"]},
+    {"prompt":"Fix websocket reconnect in src/channel.py without losing read receipts", "expected":["demo:chat"], "pins":["demo:chat"]},
+    {"prompt":"Explain owner/mail-dispatch retry behavior in lib/retry.py", "expected":["demo:mail-dispatch"]},
+    {"prompt":"Inspect owner/billing read/write handling in src/invoice.py", "expected":["demo:billing"]},
+    {"prompt":"Fix owner/search query suggestions in src/query.py and preserve product facets", "expected":["demo:search"]},
+    {"prompt":"Explain owner/monitoring health checks in lib/probe.py and client/server alerts", "expected":["demo:monitoring"]},
+    {"prompt":"Preserve inventory reservation behavior in src/stock.py while tracing I/O", "expected":["demo:inventory"], "pins":["demo:inventory"]},
+    {"prompt":"Fix contact synchronization in src/connector.py even though missing/repo is not connected", "expected":["demo:integrations"], "pins":["demo:integrations"]}
+  ],
+  "path_ambiguous": ["Explain src/billing read/write behavior", "Fix client/server I/O in src/worker.py"],
+  "path_absent": ["Find volcanic magma analysis in geophysics/sensor.py", "Build quantum entanglement detection in physics/device.py"]
+}

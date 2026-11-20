@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GitHub connection · OpenDevEngine</title>
+<meta name="description" content="Use a GitHub App and select repositories explicitly. A GitHub CLI login is not imported.">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body><a class="skip" href="#main">Skip to content</a>
+<header class="topbar"><a class="brand" href="../index.html"><span class="mark" aria-hidden="true">/</span>OpenDevEngine</a>
+<nav aria-label="Primary"><a href="index.html">Documentation</a><a href="https://github.com/opendevengine/opendevengine">GitHub <span aria-hidden="true">↗</span></a>
+</nav>
+</header>
+<div class="docs-layout">
+<aside class="sidebar">
+<nav aria-label="Documentation">
+<p class="eyebrow">User manual</p><a href="index.html">Overview</a><a href="getting-started.html">Getting started</a><a href="github.html" aria-current="page">GitHub connection</a><a href="indexing.html">Repository indexing</a><a href="asking.html">Asking and planning</a><a href="sessions.html">Implementation sessions</a><a href="pull-requests.html">Pull requests</a><a href="models.html">Models and providers</a><a href="configuration.html">Configuration and data</a><a href="troubleshooting.html">Troubleshooting</a><a href="security.html">Security model</a><a href="faq.html">FAQ and limitations</a>
+</nav>
+</aside>
+<main id="main" tabindex="-1">
+<article>
+<header class="page-intro">
+<p class="eyebrow">Documentation / GitHub connection</p>
+<h1>GitHub connection</h1>
+<p class="lead">Use a GitHub App and select repositories explicitly. A GitHub CLI login is not imported.</p>
+</header>
+<h2 id="connect">Create and install an App</h2>
+<ol>
+<li>Start with <code>--data-dir</code> and unlock your operating system’s credential vault.</li>
+<li>Open Settings → GitHub → <strong>Connect GitHub</strong>.</li>
+<li>Review the private App manifest on GitHub and choose Create. It requests Contents and Pull requests read/write, and Metadata read.</li>
+<li>Install the App on the repositories you want to use.</li>
+</ol>
+<p>The App ID and private key go into the OS vault. There is no plaintext fallback.</p>
+<h2 id="existing">Use an existing App</h2>
+<p>Choose <strong>Use an existing GitHub App</strong> and provide its App ID, slug and private key. With the default port, its Setup URL must be <code>http://127.0.0.1:8765/api/github/callback</code>. If you change <code>--port</code>, update the callback port too.</p>
+<p>Older read-only Apps need Contents and Pull requests write permissions enabled on GitHub and accepted for the installation before publication can work.</p>
+<h2 id="permissions">Two independent switches</h2>
+<dl>
+<dt>Use in Ask</dt>
+<dd>Allows indexing and inclusion in answers and plans.</dd>
+<dt>Allow changes</dt>
+<dd>Allows implementation and draft PR publication for that repository. It does not publish anything by itself.</dd>
+</dl>
+<p>Enable both for a session’s writable repository. Losing access or disabling a permission can block work even when an older plan was ready.</p>
+<p>Next: <a href="indexing.html">indexing and source coverage</a>.</p>
+<nav class="page-next" aria-label="Continue reading"><a href="getting-started.html">← Getting started</a><a href="indexing.html">Repository indexing →</a>
+</nav>
+</article>
+</main>
+</div>
+<footer>
+<p>OpenDevEngine · Early release 0.1 · Runs on your computer.</p><a href="../docs/security.html">Security model</a><a href="https://github.com/opendevengine/opendevengine">Source on GitHub</a>
+</footer>
+</body>
+</html>

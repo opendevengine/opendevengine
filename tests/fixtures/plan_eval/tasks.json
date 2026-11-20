@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "corpus": "bundled examples (opendevengine/examples); synthetic source only",
+  "gate": {"min_passed": 8, "min_valid_output": 9},
+  "tasks": [
+    {
+      "id": "outbox-retry",
+      "kind": "plan",
+      "pins": ["orders-api"],
+      "prompt": "Add retry with exponential backoff, at most 5 attempts, when OutboxPublisher fails to send an event to Kafka. Do not mark the event published until the send succeeds.",
+      "write": "orders-api",
+      "expected_repositories": ["orders-api"],
+      "expected_paths": ["src/main/java/example/orders/OutboxPublisher.java"],
+      "must_mention": ["5"]
+    },
+    {
+      "id": "empty-items-400",
+      "kind": "plan",
+      "pins": ["orders-api"],
+      "prompt": "POST /api/orders must return HTTP 400 when the request has no items, without inserting an order or an outbox event.",
+      "write": "orders-api",
+      "expected_repositories": ["orders-api"],
+      "expected_paths": ["src/main/java/example/orders/OrderController.java", "src/main/java/example/orders/OrderService.java"],
+      "must_mention": ["400"]
+    },
+    {
+      "id": "phone-column",
+      "kind": "plan",
+      "pins": ["orders-db"],
+      "prompt": "Add an optional phone column to the orders table using a new migration. Do not edit the existing V001 migration.",
+      "write": "orders-db",
+      "expected_repositories": ["orders-db"],
+      "expected_paths": ["migrations/V001__checkout.sql"],
+      "must_mention": ["phone"]
+    },
+    {
+      "id": "outbox-index",
+      "kind": "plan",
+      "pins": ["orders-db"],
+      "prompt": "Add a database index so unpublished rows in order_outbox (published_at is null) can be found quickly.",
+      "write": "orders-db",
+      "expected_repositories": ["orders-db"],
+      "expected_paths": ["migrations/V001__checkout.sql"],
+      "must_mention": ["published_at"]
+    },
+    {
+      "id": "blank-email",
+      "kind": "plan",
+      "pins": ["notifications-worker"],
+      "prompt": "Skip sending the confirmation email when the order.created event has a blank email address, and log the order id instead.",
+      "write": "notifications-worker",
+      "expected_repositories": ["notifications-worker"],
+      "expected_paths": ["src/OrderEmailConsumer.java"],
+      "must_mention": ["blank|empty"]
+    },
+    {
+      "id": "checkout-409",
+      "kind": "plan",
+      "pins": ["storefront-web"],
+      "prompt": "When the orders API answers 409, checkout should throw an error with the message 'Some items are no longer available' instead of the generic failure.",
+      "write": "storefront-web",
+      "expected_repositories": ["storefront-web"],
+      "expected_paths": ["src/checkout.ts"],
+      "must_mention": ["409"]
+    },
+    {
+      "id": "quantity-limit",
+      "kind": "plan",
+      "pins": ["storefront-web", "orders-api"],
+      "prompt": "Limit each cart item to a quantity of at most 10. The orders API must reject larger quantities; the storefront checkout request type should document the limit.",
+      "write": null,
+      "expected_repositories": ["storefront-web", "orders-api"],
+      "expected_paths": ["src/checkout.ts", "src/main/java/example/orders/OrderController.java", "src/main/java/example/orders/OrderService.java"],
+      "must_mention": ["10"]
+    },
+    {
+      "id": "event-email",
+      "kind": "plan",
+      "pins": ["orders-api", "notifications-worker"],
+      "prompt": "The notifications worker reads the customer email from the order.created event. Make sure orders-api puts the email in that event payload. Change only orders-api.",
+      "write": "orders-api",
+      "expected_repositories": ["orders-api"],
+      "expected_paths": ["src/main/java/example/orders/OrderService.java", "src/main/java/example/orders/OutboxPublisher.java"],
+      "must_mention": ["email"]
+    },
+    {
+      "id": "absent-feature",
+      "kind": "clarify",
+      "pins": ["orders-api"],
+      "prompt": "Add partial refunds to the Stripe billing integration.",
+      "expected_repositories": [],
+      "expected_paths": [],
+      "must_mention": []
+    },
+    {
+      "id": "vague-request",
+      "kind": "clarify",
+      "pins": ["storefront-web"],
+      "prompt": "Make it better.",
+      "expected_repositories": [],
+      "expected_paths": [],
+      "must_mention": []
+    }
+  ]
+}

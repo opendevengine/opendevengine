@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Troubleshooting · OpenDevEngine</title>
+<meta name="description" content="Use the reported state to decide what to retry. Do not treat missing checks as passed.">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body><a class="skip" href="#main">Skip to content</a>
+<header class="topbar"><a class="brand" href="../index.html"><span class="mark" aria-hidden="true">/</span>OpenDevEngine</a>
+<nav aria-label="Primary"><a href="index.html">Documentation</a><a href="https://github.com/opendevengine/opendevengine">GitHub <span aria-hidden="true">↗</span></a>
+</nav>
+</header>
+<div class="docs-layout">
+<aside class="sidebar">
+<nav aria-label="Documentation">
+<p class="eyebrow">User manual</p><a href="index.html">Overview</a><a href="getting-started.html">Getting started</a><a href="github.html">GitHub connection</a><a href="indexing.html">Repository indexing</a><a href="asking.html">Asking and planning</a><a href="sessions.html">Implementation sessions</a><a href="pull-requests.html">Pull requests</a><a href="models.html">Models and providers</a><a href="configuration.html">Configuration and data</a><a href="troubleshooting.html" aria-current="page">Troubleshooting</a><a href="security.html">Security model</a><a href="faq.html">FAQ and limitations</a>
+</nav>
+</aside>
+<main id="main" tabindex="-1">
+<article>
+<header class="page-intro">
+<p class="eyebrow">Documentation / Troubleshooting</p>
+<h1>Troubleshooting</h1>
+<p class="lead">Use the reported state to decide what to retry. Do not treat missing checks as passed.</p>
+</header>
+<h2 id="storage">GitHub or credentials are unavailable</h2>
+<p>Restart with <code>--data-dir</code>, unlock your OS keychain or vault and retry setup. Install the full optional dependencies from <a href="getting-started.html#install">the setup instructions</a>. If secure storage is missing or locked, credential setup is blocked; a plaintext key file is not a fallback.</p>
+<h2 id="disk-limit">Indexing paused: disk limit</h2>
+<p>A paused run shows <strong>disk limit</strong> when it reaches the default 4 GiB index size cap or indexing would leave less than 1 GB free on the data volume. The cap counts live database pages, so deleting a local index frees headroom. On Repositories, free disk space or use <strong>Delete local index</strong> on repositories you no longer need, then <strong>Resume</strong>.</p>
+<h2 id="routing">“Choose a repository to continue”</h2>
+<p>Name the repository in your question, attach it with <strong>+</strong>, or pick a suggestion. Reasons show matching terms. Confirm <strong>Use in Ask</strong> is enabled and the index has usable source.</p>
+<h2 id="timeout">Answers or plans time out</h2>
+<p>Check the assigned role in Settings → Models, the profile timeout and whether the model is available. Local CPU inference can take several minutes. Run <code>ollama ps</code> to inspect CPU/GPU use. Try a smaller model, a longer allowed timeout or an explicitly approved hosted provider. The CLI-created Ollama profile has a 10-minute timeout; other profiles default to 60 seconds.</p>
+<h2 id="launch">A session fails before the agent starts</h2>
+<p>Confirm Docker is running, the selected image is already local, Claude Code is installed and logged in, and <strong>Test execution profile</strong> passes. Check source-sharing consent, both repository switches, the plan’s execution profile and its blocking questions. Network-dependent installs need dependencies baked into the image.</p>
+<h2 id="base">The base branch changed</h2>
+<p>Inspect the freshness notice. Regenerate the plan for current source, or explicitly retain its saved base. A later publication can still be blocked by conflicting changes.</p>
+<h2 id="interrupted">The app stopped during a session</h2>
+<p>Restart using the same data directory. Recovery confirms containment before marking work interrupted. Inspect the last checkpoint and use <strong>Retry as a new attempt</strong>. Uncheckpointed edits may be lost. A containment failure remains unresolved until the old runtime is confirmed stopped.</p>
+<h2 id="publication">Publication is blocked or uncertain</h2>
+<p>Review permissions, excluded paths, sensitive-content errors, artifact availability and base divergence. When a response was lost, use Retry so the app reconciles with GitHub. Do not start a new session just to retry the same publication.</p>
+<h2 id="purge">Session content cannot be deleted</h2>
+<p>Wait until execution is terminal and publication is no longer in progress. If filesystem cleanup fails, retry deletion. The durable purge marker makes retained content unavailable even while cleanup needs attention.</p>
+<h2 id="port">The server cannot start</h2>
+<p>Check the data-directory permissions and database compatibility. If port 8765 is occupied, choose another with <code>--port</code> and update the GitHub App callback accordingly. Keep the server loopback-only.</p>
+<nav class="page-next" aria-label="Continue reading"><a href="configuration.html">← Configuration and data</a><a href="security.html">Security model →</a>
+</nav>
+</article>
+</main>
+</div>
+<footer>
+<p>OpenDevEngine · Early release 0.1 · Runs on your computer.</p><a href="../docs/security.html">Security model</a><a href="https://github.com/opendevengine/opendevengine">Source on GitHub</a>
+</footer>
+</body>
+</html>

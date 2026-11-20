@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Implementation sessions · OpenDevEngine</title>
+<meta name="description" content="Run Claude Code against an isolated repository copy and review its recorded work.">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body><a class="skip" href="#main">Skip to content</a>
+<header class="topbar"><a class="brand" href="../index.html"><span class="mark" aria-hidden="true">/</span>OpenDevEngine</a>
+<nav aria-label="Primary"><a href="index.html">Documentation</a><a href="https://github.com/opendevengine/opendevengine">GitHub <span aria-hidden="true">↗</span></a>
+</nav>
+</header>
+<div class="docs-layout">
+<aside class="sidebar">
+<nav aria-label="Documentation">
+<p class="eyebrow">User manual</p><a href="index.html">Overview</a><a href="getting-started.html">Getting started</a><a href="github.html">GitHub connection</a><a href="indexing.html">Repository indexing</a><a href="asking.html">Asking and planning</a><a href="sessions.html" aria-current="page">Implementation sessions</a><a href="pull-requests.html">Pull requests</a><a href="models.html">Models and providers</a><a href="configuration.html">Configuration and data</a><a href="troubleshooting.html">Troubleshooting</a><a href="security.html">Security model</a><a href="faq.html">FAQ and limitations</a>
+</nav>
+</aside>
+<main id="main" tabindex="-1">
+<article>
+<header class="page-intro">
+<p class="eyebrow">Documentation / Implementation sessions</p>
+<h1>Implementation sessions</h1>
+<p class="lead">Run Claude Code against an isolated repository copy and review its recorded work.</p>
+</header>
+<h2 id="prepare">Prepare Docker and Claude Code</h2>
+<p>Start Docker, install and log into the Claude Code CLI (<code>claude</code>), and run the app with <code>--data-dir</code>. Pull your execution image before starting a session. Sessions never pull images and have no container network. For a Python project, one example is:</p>
+<pre tabindex="0" aria-label="Command example"><code>docker pull python:3.12-slim</code>
+</pre>
+<p>Choose an image that already contains your project’s required tools and dependencies; installs that need the network cannot run inside a session.</p>
+<h2 id="profile">Create an execution profile</h2>
+<ol>
+<li>In Settings → Privacy, turn off <strong>Keep everything on this computer</strong>. The coding agent sends the plan and permitted source to Anthropic.</li>
+<li>In Settings → Coding agent, set <strong>Pull request author</strong> using your own commit identity.</li>
+<li>Create a profile with your locally available container image. The optional <strong>Claude model</strong> accepts an alias or ID; leave it blank to use your Claude Code default. This is separate from Ask’s model.</li>
+<li>Enable <strong>Allow sending repository source to the external coding model</strong> and run <strong>Test execution profile</strong> until it passes.</li>
+</ol>
+<p>The profile version, including its chosen model and limits, is pinned when a session starts. Editing defaults does not change a running session.</p>
+<h2 id="run">Start and supervise</h2>
+<p>Enable both repository switches, generate a ready plan and select <strong>Start session</strong>. Follow activity, file changes, the diff and validation results. Send guidance within the recorded scope; follow-ups cannot grant new repository access. Passed, failed and not-run checks are different outcomes. Completion alone does not mean every check passed.</p>
+<h2 id="boundary">Understand the boundary</h2>
+<p>The repository copy and commands live in a container with <code>--network none</code>, dropped capabilities, a read-only root filesystem and resource limits. Claude Code runs on the host in an empty private temporary directory, with built-in tools, hooks, plugins, settings, memory and slash commands disabled. It acts through brokered tools into the container and uses your own login to contact Anthropic. Read the <a href="security.html">security model</a>.</p>
+<h2 id="recovery">Stop, retry and recover</h2>
+<p><strong>Stop session</strong> blocks new tools and requests termination. Wait for confirmed containment; a containment failure must be treated as unresolved. After an app interruption, startup checks that the old agent and container are gone and marks the session interrupted. Edits after the last checkpoint may be lost. <strong>Retry as a new attempt</strong> creates linked history; it does not resume an invisible live process.</p>
+<h2 id="purge">Delete retained session content</h2>
+<p>For a finished session, <strong>Delete session content</strong> purges local events, guidance, diffs, checkpoints and validation output. Minimal identity, base commit and PR linkage remain. An in-progress publication blocks purge. Plans and repository indexes have separate retention controls; GitHub PRs and backups are unaffected.</p>
+<p>Next: <a href="pull-requests.html">review and publish a draft PR</a>.</p>
+<nav class="page-next" aria-label="Continue reading"><a href="asking.html">← Asking and planning</a><a href="pull-requests.html">Pull requests →</a>
+</nav>
+</article>
+</main>
+</div>
+<footer>
+<p>OpenDevEngine · Early release 0.1 · Runs on your computer.</p><a href="../docs/security.html">Security model</a><a href="https://github.com/opendevengine/opendevengine">Source on GitHub</a>
+</footer>
+</body>
+</html>

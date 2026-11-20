@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>OpenDevEngine</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+  <aside class="rail" id="rail" aria-label="Workspace navigation">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">OD</span><span>OpenDevEngine</span></div>
+    <a class="rail-new" id="rail-new" href="#/ask"><span aria-hidden="true">＋</span> New conversation</a>
+    <nav class="primary-nav" id="rail-nav" aria-label="Workspace">
+      <ul>
+        <li><a href="#/ask" data-route="ask" aria-current="page">Ask</a></li>
+        <li class="nav-capability is-pending" id="nav-sessions" aria-hidden="true"><a href="#/sessions" data-route="sessions" tabindex="-1">Sessions</a></li>
+        <li><a href="#/repositories" data-route="repositories">Repositories</a></li>
+        <li class="recent" id="recent" hidden>
+          <h2 class="small-heading" id="recent-heading">Recent</h2>
+          <ul class="recent-list" id="recent-list"></ul>
+        </li>
+        <li class="rail-bottom"><a href="#/settings" data-route="settings">Settings</a></li>
+      </ul>
+    </nav>
+  </aside>
+  <div class="main-column">
+  <header class="page-top" id="page-header">
+    <button class="icon-button history-toggle" id="history-toggle" type="button" aria-label="Conversations" aria-controls="sidebar" aria-expanded="false">☰</button>
+    <p class="page-top-title" id="page-header-title"></p>
+    <span class="page-top-pills" id="page-header-pills"></span>
+    <div class="top-actions">
+      <span class="workspace-mode" id="workspace-mode"><span class="workspace-mode-icon" aria-hidden="true">◇</span><strong id="workspace-mode-label">Loading workspace…</strong><span class="workspace-mode-detail" id="workspace-mode-detail"></span></span>
+      <span class="mode" id="mode" title="Connect local Ollama to generate answers"><span class="status-dot"></span><span id="mode-label">Connecting</span></span>
+      <button class="button scope-button" type="button" id="show-repos" title="Choose repositories for this conversation" disabled>
+        <span class="folder-icon" aria-hidden="true"></span>
+        <span id="scope-label">Repositories</span>
+      </button>
+    </div>
+  </header>
+  <div class="page-area" id="page">
+  <p class="sr-only" id="app-status" role="status" aria-live="polite"></p>
+
+  <div class="workspace view" id="view-ask" data-view="ask">
+    <aside class="sidebar" id="sidebar">
+      <button class="button new-chat" type="button" id="new-chat" disabled><span aria-hidden="true">+</span> New conversation</button>
+      <nav aria-label="Conversations">
+        <h2 class="small-heading">Conversations</h2>
+        <p class="history-empty" id="history-empty">Your questions will appear here.</p>
+        <div id="history" class="history"></div>
+      </nav>
+      <div class="workspace-label" id="workspace-label"></div>
+    </aside>
+
+    <main class="conversation" aria-label="Repository question and answer">
+      <h1 class="sr-only view-title" id="ask-title" tabindex="-1">Ask</h1>
+      <div class="thread" id="thread" aria-busy="true">
+        <div class="intro" id="intro">
+          <div class="intro-icon" aria-hidden="true">OD</div>
+          <h2 class="intro-title">Ask your codebase</h2>
+          <p id="intro-text">Loading repositories…</p>
+          <div class="examples" id="examples" hidden>
+            <button class="example" type="button" data-question="Trace checkout from the storefront through the orders API, database, and confirmation email.">
+              <span><strong>Trace checkout</strong><small>Follow a request across four repositories</small></span><span aria-hidden="true">↗</span>
+            </button>
+            <button class="example" type="button" data-question="Where is the orders table defined, and which service writes to it?">
+              <span><strong>Find the orders table</strong><small>Find the migration and the code that writes to it</small></span><span aria-hidden="true">↗</span>
+            </button>
+          </div>
+        </div>
+        <div class="messages" id="messages" hidden></div>
+      </div>
+      <form id="ask-form" class="composer">
+        <label class="sr-only" for="question">Question about your repositories</label>
+        <textarea id="question" name="question" rows="2" maxlength="2000" placeholder="Ask how a feature works…" required disabled></textarea>
+        <div class="composer-actions">
+          <span id="composer-status" role="status">Loading repositories…</span>
+          <button type="submit" class="ask-button" id="ask-button" disabled>Ask <span aria-hidden="true">↑</span></button>
+        </div>
+      </form>
+    </main>
+
+    <aside class="inspector" id="inspector" aria-label="Source code">
+      <div class="inspector-header">
+        <h2>Source</h2>
+        <button class="icon-button" id="close-source" type="button" aria-label="Close source" hidden>×</button>
+      </div>
+      <div class="inspector-empty" id="inspector-empty">
+        <div class="source-icon" aria-hidden="true">[ ]</div>
+        <p>Select a citation to see the code.</p>
+      </div>
+      <div class="source-panel" id="source-panel" hidden aria-live="polite"></div>
+    </aside>
+  </div>
+
+  <main class="page view" id="view-repositories" data-view="repositories" aria-labelledby="repositories-title" hidden>
+    <div class="page-inner">
+      <header class="page-header">
+        <div>
+          <h1 class="view-title route-title" id="repositories-title" tabindex="-1">Repositories</h1>
+          <p class="page-lede">Choose which repositories Ask searches and where OpenDevEngine may propose changes. Click a repository for its index details.</p>
+        </div>
+      </header>
+      <div id="repositories-content"><p class="page-status">Loading repositories…</p></div>
+    </div>
+  </main>
+
+  <main class="page view" id="view-sessions" data-view="sessions" aria-labelledby="sessions-title" hidden>
+    <div class="page-inner">
+      <header class="page-header"><div>
+        <h1 class="view-title route-title" id="sessions-title" tabindex="-1">Sessions</h1>
+        <p class="page-lede">Follow implementation within an exact saved plan, inspect checkpoints and checks, and stop work.</p>
+      </div></header>
+      <div id="sessions-content"></div>
+    </div>
+  </main>
+
+  <main class="page view" id="view-settings" data-view="settings" aria-labelledby="settings-title" hidden>
+    <div class="page-inner">
+      <header class="page-header">
+        <div>
+          <h1 class="view-title route-title" id="settings-title" tabindex="-1">Settings</h1>
+          <p class="page-lede">Connect GitHub, configure model destinations and roles, and inspect workspace health.</p>
+        </div>
+        <button class="button" type="button" id="refresh-status">Refresh status</button>
+      </header>
+      <div id="settings-content"><p class="page-status">Loading status…</p></div>
+    </div>
+  </main>
+
+  </div>
+  </div>
+  <aside class="side-panel" id="side-panel" aria-label="Details" hidden></aside>
+  </div>
+
+  <dialog id="repo-dialog" aria-labelledby="repo-dialog-title">
+    <form id="repo-form">
+      <header class="dialog-header">
+        <div>
+          <h2 id="repo-dialog-title">Select repositories</h2>
+          <p id="repo-dialog-help">Search and answers use the repositories you select.</p>
+        </div>
+        <button class="icon-button" id="close-repos" type="button" aria-label="Close repository picker">×</button>
+      </header>
+      <label class="sr-only" for="repo-filter">Filter repositories</label>
+      <input type="search" id="repo-filter" placeholder="Filter repositories…" autocomplete="off">
+      <div class="repo-options" id="repo-options" role="group" aria-label="Indexed repositories"></div>
+      <footer class="dialog-actions">
+        <span id="repo-count" aria-live="polite"></span>
+        <button class="button" id="cancel-repos" type="button">Cancel</button>
+        <button class="ask-button" type="submit" id="apply-repos">Apply</button>
+      </footer>
+    </form>
+  </dialog>
+</body>
+</html>

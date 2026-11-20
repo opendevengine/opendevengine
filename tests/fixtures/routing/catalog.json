@@ -1,0 +1,1601 @@
+{
+  "repositories": [
+    {
+      "name": "mail-dispatch",
+      "profile": "Transactional email notifications, confirmation delivery, SMTP retry backoff and dead letters",
+      "id": "demo:mail-dispatch"
+    },
+    {
+      "name": "checkout",
+      "profile": "Cart checkout, order placement, coupons, totals and payment authorization",
+      "id": "demo:checkout"
+    },
+    {
+      "name": "billing",
+      "profile": "Invoice generation, subscriptions, proration, recurring payments and credit notes",
+      "id": "demo:billing"
+    },
+    {
+      "name": "identity",
+      "profile": "Login authentication, password reset, MFA challenges and session expiration",
+      "id": "demo:identity"
+    },
+    {
+      "name": "search",
+      "profile": "Product search indexing, ranking, facets, query suggestions and synonyms",
+      "id": "demo:search"
+    },
+    {
+      "name": "inventory",
+      "profile": "Stock reservations, warehouse availability, replenishment and overselling",
+      "id": "demo:inventory"
+    },
+    {
+      "name": "shipping",
+      "profile": "Shipment labels, carrier rates, parcel tracking and delivery estimates",
+      "id": "demo:shipping"
+    },
+    {
+      "name": "returns",
+      "profile": "Returns authorization, refunds, damaged goods and exchanges",
+      "id": "demo:returns"
+    },
+    {
+      "name": "analytics",
+      "profile": "Event ingestion, funnel conversion, attribution and dashboard metrics",
+      "id": "demo:analytics"
+    },
+    {
+      "name": "reporting",
+      "profile": "Scheduled reports, CSV export, financial aggregates and report filters",
+      "id": "demo:reporting"
+    },
+    {
+      "name": "catalog",
+      "profile": "Product catalog, variants, categories, merchandising and attribute validation",
+      "id": "demo:catalog"
+    },
+    {
+      "name": "pricing",
+      "profile": "Price lists, currency conversion, promotional rules and regional tax",
+      "id": "demo:pricing"
+    },
+    {
+      "name": "support",
+      "profile": "Support tickets, agent assignment, escalation, SLA timers and customer replies",
+      "id": "demo:support"
+    },
+    {
+      "name": "chat",
+      "profile": "Realtime messaging, channels, read receipts, presence and websocket reconnect",
+      "id": "demo:chat"
+    },
+    {
+      "name": "media",
+      "profile": "Image upload, thumbnail resizing, video transcoding and asset storage",
+      "id": "demo:media"
+    },
+    {
+      "name": "documents",
+      "profile": "Document editing, collaborative revisions, autosave and document sharing",
+      "id": "demo:documents"
+    },
+    {
+      "name": "calendar",
+      "profile": "Calendar appointments, recurring events, timezone conversion and reminders",
+      "id": "demo:calendar"
+    },
+    {
+      "name": "workflow",
+      "profile": "Approval workflows, state transitions, approvers and audit trails",
+      "id": "demo:workflow"
+    },
+    {
+      "name": "compliance",
+      "profile": "Consent records, data retention, privacy requests and erasure",
+      "id": "demo:compliance"
+    },
+    {
+      "name": "webhooks",
+      "profile": "Webhook subscriptions, signature verification, event delivery and retries",
+      "id": "demo:webhooks"
+    },
+    {
+      "name": "integrations",
+      "profile": "CRM synchronization, contact mapping, external connectors and sync conflicts",
+      "id": "demo:integrations"
+    },
+    {
+      "name": "devices",
+      "profile": "Device enrollment, firmware updates, heartbeat monitoring and fleet management",
+      "id": "demo:devices"
+    },
+    {
+      "name": "permissions",
+      "profile": "Role based access, resource grants, organization membership and authorization",
+      "id": "demo:permissions"
+    },
+    {
+      "name": "experiments",
+      "profile": "Feature flags, experiment cohorts, rollout percentages and A/B assignment",
+      "id": "demo:experiments"
+    },
+    {
+      "name": "monitoring",
+      "profile": "Service health checks, incident alerts, uptime and error budgets",
+      "id": "demo:monitoring"
+    },
+    {
+      "name": "tools-000",
+      "profile": "deployment manifests and build artifacts",
+      "id": "demo:tools-000"
+    },
+    {
+      "name": "tools-001",
+      "profile": "load tests and benchmark scripts",
+      "id": "demo:tools-001"
+    },
+    {
+      "name": "tools-002",
+      "profile": "developer onboarding and local tooling",
+      "id": "demo:tools-002"
+    },
+    {
+      "name": "tools-003",
+      "profile": "release notes and documentation",
+      "id": "demo:tools-003"
+    },
+    {
+      "name": "tools-004",
+      "profile": "database backup and migration tooling",
+      "id": "demo:tools-004"
+    },
+    {
+      "name": "tools-005",
+      "profile": "design tokens and component previews",
+      "id": "demo:tools-005"
+    },
+    {
+      "name": "tools-006",
+      "profile": "static marketing pages and accessibility",
+      "id": "demo:tools-006"
+    },
+    {
+      "name": "tools-007",
+      "profile": "internal API clients and generated SDKs",
+      "id": "demo:tools-007"
+    },
+    {
+      "name": "tools-008",
+      "profile": "test fixtures and sandbox examples",
+      "id": "demo:tools-008"
+    },
+    {
+      "name": "tools-009",
+      "profile": "deployment manifests and build artifacts",
+      "id": "demo:tools-009"
+    },
+    {
+      "name": "tools-010",
+      "profile": "load tests and benchmark scripts",
+      "id": "demo:tools-010"
+    },
+    {
+      "name": "tools-011",
+      "profile": "developer onboarding and local tooling",
+      "id": "demo:tools-011"
+    },
+    {
+      "name": "tools-012",
+      "profile": "release notes and documentation",
+      "id": "demo:tools-012"
+    },
+    {
+      "name": "tools-013",
+      "profile": "database backup and migration tooling",
+      "id": "demo:tools-013"
+    },
+    {
+      "name": "tools-014",
+      "profile": "design tokens and component previews",
+      "id": "demo:tools-014"
+    },
+    {
+      "name": "tools-015",
+      "profile": "static marketing pages and accessibility",
+      "id": "demo:tools-015"
+    },
+    {
+      "name": "tools-016",
+      "profile": "internal API clients and generated SDKs",
+      "id": "demo:tools-016"
+    },
+    {
+      "name": "tools-017",
+      "profile": "test fixtures and sandbox examples",
+      "id": "demo:tools-017"
+    },
+    {
+      "name": "tools-018",
+      "profile": "deployment manifests and build artifacts",
+      "id": "demo:tools-018"
+    },
+    {
+      "name": "tools-019",
+      "profile": "load tests and benchmark scripts",
+      "id": "demo:tools-019"
+    },
+    {
+      "name": "tools-020",
+      "profile": "developer onboarding and local tooling",
+      "id": "demo:tools-020"
+    },
+    {
+      "name": "tools-021",
+      "profile": "release notes and documentation",
+      "id": "demo:tools-021"
+    },
+    {
+      "name": "tools-022",
+      "profile": "database backup and migration tooling",
+      "id": "demo:tools-022"
+    },
+    {
+      "name": "tools-023",
+      "profile": "design tokens and component previews",
+      "id": "demo:tools-023"
+    },
+    {
+      "name": "tools-024",
+      "profile": "static marketing pages and accessibility",
+      "id": "demo:tools-024"
+    },
+    {
+      "name": "tools-025",
+      "profile": "internal API clients and generated SDKs",
+      "id": "demo:tools-025"
+    },
+    {
+      "name": "tools-026",
+      "profile": "test fixtures and sandbox examples",
+      "id": "demo:tools-026"
+    },
+    {
+      "name": "tools-027",
+      "profile": "deployment manifests and build artifacts",
+      "id": "demo:tools-027"
+    },
+    {
+      "name": "tools-028",
+      "profile": "load tests and benchmark scripts",
+      "id": "demo:tools-028"
+    },
+    {
+      "name": "tools-029",
+      "profile": "developer onboarding and local tooling",
+      "id": "demo:tools-029"
+    },
+    {
+      "name": "tools-030",
+      "profile": "release notes and documentation",
+      "id": "demo:tools-030"
+    },
+    {
+      "name": "tools-031",
+      "profile": "database backup and migration tooling",
+      "id": "demo:tools-031"
+    },
+    {
+      "name": "tools-032",
+      "profile": "design tokens and component previews",
+      "id": "demo:tools-032"
+    },
+    {
+      "name": "tools-033",
+      "profile": "static marketing pages and accessibility",
+      "id": "demo:tools-033"
+    },
+    {
+      "name": "tools-034",
+      "profile": "internal API clients and generated SDKs",
+      "id": "demo:tools-034"
+    },
+    {
+      "name": "tools-035",
+      "profile": "test fixtures and sandbox examples",
+      "id": "demo:tools-035"
+    },
+    {
+      "name": "tools-036",
+      "profile": "deployment manifests and build artifacts",
+      "id": "demo:tools-036"
+    },
+    {
+      "name": "tools-037",
+      "profile": "load tests and benchmark scripts",
+      "id": "demo:tools-037"
+    },
+    {
+      "name": "tools-038",
+      "profile": "developer onboarding and local tooling",
+      "id": "demo:tools-038"
+    },
+    {
+      "name": "tools-039",
+      "profile": "release notes and documentation",
+      "id": "demo:tools-039"
+    },
+    {
+      "name": "tools-040",
+      "profile": "database backup and migration tooling",
+      "id": "demo:tools-040"
+    },
+    {
+      "name": "tools-041",
+      "profile": "design tokens and component previews",
+      "id": "demo:tools-041"
+    },
+    {
+      "name": "tools-042",
+      "profile": "static marketing pages and accessibility",
+      "id": "demo:tools-042"
+    },
+    {
+      "name": "tools-043",
+      "profile": "internal API clients and generated SDKs",
+      "id": "demo:tools-043"
+    },
+    {
+      "name": "tools-044",
+      "profile": "test fixtures and sandbox examples",
+      "id": "demo:tools-044"
+    },
+    {
+      "name": "tools-045",
+      "profile": "deployment manifests and build artifacts",
+      "id": "demo:tools-045"
+    },
+    {
+      "name": "tools-046",
+      "profile": "load tests and benchmark scripts",
+      "id": "demo:tools-046"
+    },
+    {
+      "name": "tools-047",
+      "profile": "developer onboarding and local tooling",
+      "id": "demo:tools-047"
+    },
+    {
+      "name": "tools-048",
+      "profile": "release notes and documentation",
+      "id": "demo:tools-048"
+    },
+    {
+      "name": "tools-049",
+      "profile": "database backup and migration tooling",
+      "id": "demo:tools-049"
+    },
+    {
+      "name": "tools-050",
+      "profile": "design tokens and component previews",
+      "id": "demo:tools-050"
+    },
+    {
+      "name": "tools-051",
+      "profile": "static marketing pages and accessibility",
+      "id": "demo:tools-051"
+    },
+    {
+      "name": "tools-052",
+      "profile": "internal API clients and generated SDKs",
+      "id": "demo:tools-052"
+    },
+    {
+      "name": "tools-053",
+      "profile": "test fixtures and sandbox examples",
+      "id": "demo:tools-053"
+    },
+    {
+      "name": "tools-054",
+      "profile": "deployment manifests and build artifacts",
+      "id": "demo:tools-054"
+    },
+    {
+      "name": "tools-055",
+      "profile": "load tests and benchmark scripts",
+      "id": "demo:tools-055"
+    },
+    {
+      "name": "tools-056",
+      "profile": "developer onboarding and local tooling",
+      "id": "demo:tools-056"
+    },
+    {
+      "name": "tools-057",
+      "profile": "release notes and documentation",
+      "id": "demo:tools-057"
+    },
+    {
+      "name": "tools-058",
+      "profile": "database backup and migration tooling",
+      "id": "demo:tools-058"
+    },
+    {
+      "name": "tools-059",
+      "profile": "design tokens and component previews",
+      "id": "demo:tools-059"
+    },
+    {
+      "name": "tools-060",
+      "profile": "static marketing pages and accessibility",
+      "id": "demo:tools-060"
+    },
+    {
+      "name": "tools-061",
+      "profile": "internal API clients and generated SDKs",
+      "id": "demo:tools-061"
+    },
+    {
+      "name": "tools-062",
+      "profile": "test fixtures and sandbox examples",
+      "id": "demo:tools-062"
+    },
+    {
+      "name": "tools-063",
+      "profile": "deployment manifests and build artifacts",
+      "id": "demo:tools-063"
+    },
+    {
+      "name": "tools-064",
+      "profile": "load tests and benchmark scripts",
+      "id": "demo:tools-064"
+    },
+    {
+      "name": "tools-065",
+      "profile": "developer onboarding and local tooling",
+      "id": "demo:tools-065"
+    },
+    {
+      "name": "tools-066",
+      "profile": "release notes and documentation",
+      "id": "demo:tools-066"
+    },
+    {
+      "name": "tools-067",
+      "profile": "database backup and migration tooling",
+      "id": "demo:tools-067"
+    },
+    {
+      "name": "tools-068",
+      "profile": "design tokens and component previews",
+      "id": "demo:tools-068"
+    },
+    {
+      "name": "tools-069",
+      "profile": "static marketing pages and accessibility",
+      "id": "demo:tools-069"
+    },
+    {
+      "name": "tools-070",
+      "profile": "internal API clients and generated SDKs",
+      "id": "demo:tools-070"
+    },
+    {
+      "name": "tools-071",
+      "profile": "test fixtures and sandbox examples",
+      "id": "demo:tools-071"
+    },
+    {
+      "name": "tools-072",
+      "profile": "deployment manifests and build artifacts",
+      "id": "demo:tools-072"
+    },
+    {
+      "name": "tools-073",
+      "profile": "load tests and benchmark scripts",
+      "id": "demo:tools-073"
+    },
+    {
+      "name": "tools-074",
+      "profile": "developer onboarding and local tooling",
+      "id": "demo:tools-074"
+    },
+    {
+      "name": "tools-075",
+      "profile": "release notes and documentation",
+      "id": "demo:tools-075"
+    },
+    {
+      "name": "tools-076",
+      "profile": "database backup and migration tooling",
+      "id": "demo:tools-076"
+    },
+    {
+      "name": "tools-077",
+      "profile": "design tokens and component previews",
+      "id": "demo:tools-077"
+    },
+    {
+      "name": "tools-078",
+      "profile": "static marketing pages and accessibility",
+      "id": "demo:tools-078"
+    },
+    {
+      "name": "tools-079",
+      "profile": "internal API clients and generated SDKs",
+      "id": "demo:tools-079"
+    },
+    {
+      "name": "tools-080",
+      "profile": "test fixtures and sandbox examples",
+      "id": "demo:tools-080"
+    },
+    {
+      "name": "tools-081",
+      "profile": "deployment manifests and build artifacts",
+      "id": "demo:tools-081"
+    },
+    {
+      "name": "tools-082",
+      "profile": "load tests and benchmark scripts",
+      "id": "demo:tools-082"
+    },
+    {
+      "name": "tools-083",
+      "profile": "developer onboarding and local tooling",
+      "id": "demo:tools-083"
+    },
+    {
+      "name": "tools-084",
+      "profile": "release notes and documentation",
+      "id": "demo:tools-084"
+    },
+    {
+      "name": "tools-085",
+      "profile": "database backup and migration tooling",
+      "id": "demo:tools-085"
+    },
+    {
+      "name": "tools-086",
+      "profile": "design tokens and component previews",
+      "id": "demo:tools-086"
+    },
+    {
+      "name": "tools-087",
+      "profile": "static marketing pages and accessibility",
+      "id": "demo:tools-087"
+    },
+    {
+      "name": "tools-088",
+      "profile": "internal API clients and generated SDKs",
+      "id": "demo:tools-088"
+    },
+    {
+      "name": "tools-089",
+      "profile": "test fixtures and sandbox examples",
+      "id": "demo:tools-089"
+    },
+    {
+      "name": "tools-090",
+      "profile": "deployment manifests and build artifacts",
+      "id": "demo:tools-090"
+    },
+    {
+      "name": "tools-091",
+      "profile": "load tests and benchmark scripts",
+      "id": "demo:tools-091"
+    },
+    {
+      "name": "tools-092",
+      "profile": "developer onboarding and local tooling",
+      "id": "demo:tools-092"
+    },
+    {
+      "name": "tools-093",
+      "profile": "release notes and documentation",
+      "id": "demo:tools-093"
+    },
+    {
+      "name": "tools-094",
+      "profile": "database backup and migration tooling",
+      "id": "demo:tools-094"
+    },
+    {
+      "name": "tools-095",
+      "profile": "design tokens and component previews",
+      "id": "demo:tools-095"
+    },
+    {
+      "name": "tools-096",
+      "profile": "static marketing pages and accessibility",
+      "id": "demo:tools-096"
+    },
+    {
+      "name": "tools-097",
+      "profile": "internal API clients and generated SDKs",
+      "id": "demo:tools-097"
+    },
+    {
+      "name": "tools-098",
+      "profile": "test fixtures and sandbox examples",
+      "id": "demo:tools-098"
+    },
+    {
+      "name": "tools-099",
+      "profile": "deployment manifests and build artifacts",
+      "id": "demo:tools-099"
+    },
+    {
+      "name": "tools-100",
+      "profile": "load tests and benchmark scripts",
+      "id": "demo:tools-100"
+    },
+    {
+      "name": "tools-101",
+      "profile": "developer onboarding and local tooling",
+      "id": "demo:tools-101"
+    },
+    {
+      "name": "tools-102",
+      "profile": "release notes and documentation",
+      "id": "demo:tools-102"
+    },
+    {
+      "name": "tools-103",
+      "profile": "database backup and migration tooling",
+      "id": "demo:tools-103"
+    },
+    {
+      "name": "tools-104",
+      "profile": "design tokens and component previews",
+      "id": "demo:tools-104"
+    },
+    {
+      "name": "tools-105",
+      "profile": "static marketing pages and accessibility",
+      "id": "demo:tools-105"
+    },
+    {
+      "name": "tools-106",
+      "profile": "internal API clients and generated SDKs",
+      "id": "demo:tools-106"
+    },
+    {
+      "name": "tools-107",
+      "profile": "test fixtures and sandbox examples",
+      "id": "demo:tools-107"
+    },
+    {
+      "name": "tools-108",
+      "profile": "deployment manifests and build artifacts",
+      "id": "demo:tools-108"
+    },
+    {
+      "name": "tools-109",
+      "profile": "load tests and benchmark scripts",
+      "id": "demo:tools-109"
+    },
+    {
+      "name": "tools-110",
+      "profile": "developer onboarding and local tooling",
+      "id": "demo:tools-110"
+    },
+    {
+      "name": "tools-111",
+      "profile": "release notes and documentation",
+      "id": "demo:tools-111"
+    },
+    {
+      "name": "tools-112",
+      "profile": "database backup and migration tooling",
+      "id": "demo:tools-112"
+    },
+    {
+      "name": "tools-113",
+      "profile": "design tokens and component previews",
+      "id": "demo:tools-113"
+    },
+    {
+      "name": "tools-114",
+      "profile": "static marketing pages and accessibility",
+      "id": "demo:tools-114"
+    },
+    {
+      "name": "tools-115",
+      "profile": "internal API clients and generated SDKs",
+      "id": "demo:tools-115"
+    },
+    {
+      "name": "tools-116",
+      "profile": "test fixtures and sandbox examples",
+      "id": "demo:tools-116"
+    },
+    {
+      "name": "tools-117",
+      "profile": "deployment manifests and build artifacts",
+      "id": "demo:tools-117"
+    },
+    {
+      "name": "tools-118",
+      "profile": "load tests and benchmark scripts",
+      "id": "demo:tools-118"
+    },
+    {
+      "name": "tools-119",
+      "profile": "developer onboarding and local tooling",
+      "id": "demo:tools-119"
+    },
+    {
+      "name": "tools-120",
+      "profile": "release notes and documentation",
+      "id": "demo:tools-120"
+    },
+    {
+      "name": "tools-121",
+      "profile": "database backup and migration tooling",
+      "id": "demo:tools-121"
+    },
+    {
+      "name": "tools-122",
+      "profile": "design tokens and component previews",
+      "id": "demo:tools-122"
+    },
+    {
+      "name": "tools-123",
+      "profile": "static marketing pages and accessibility",
+      "id": "demo:tools-123"
+    },
+    {
+      "name": "tools-124",
+      "profile": "internal API clients and generated SDKs",
+      "id": "demo:tools-124"
+    },
+    {
+      "name": "tools-125",
+      "profile": "test fixtures and sandbox examples",
+      "id": "demo:tools-125"
+    },
+    {
+      "name": "tools-126",
+      "profile": "deployment manifests and build artifacts",
+      "id": "demo:tools-126"
+    },
+    {
+      "name": "tools-127",
+      "profile": "load tests and benchmark scripts",
+      "id": "demo:tools-127"
+    },
+    {
+      "name": "tools-128",
+      "profile": "developer onboarding and local tooling",
+      "id": "demo:tools-128"
+    },
+    {
+      "name": "tools-129",
+      "profile": "release notes and documentation",
+      "id": "demo:tools-129"
+    },
+    {
+      "name": "tools-130",
+      "profile": "database backup and migration tooling",
+      "id": "demo:tools-130"
+    },
+    {
+      "name": "tools-131",
+      "profile": "design tokens and component previews",
+      "id": "demo:tools-131"
+    },
+    {
+      "name": "tools-132",
+      "profile": "static marketing pages and accessibility",
+      "id": "demo:tools-132"
+    },
+    {
+      "name": "tools-133",
+      "profile": "internal API clients and generated SDKs",
+      "id": "demo:tools-133"
+    },
+    {
+      "name": "tools-134",
+      "profile": "test fixtures and sandbox examples",
+      "id": "demo:tools-134"
+    },
+    {
+      "name": "tools-135",
+      "profile": "deployment manifests and build artifacts",
+      "id": "demo:tools-135"
+    },
+    {
+      "name": "tools-136",
+      "profile": "load tests and benchmark scripts",
+      "id": "demo:tools-136"
+    },
+    {
+      "name": "tools-137",
+      "profile": "developer onboarding and local tooling",
+      "id": "demo:tools-137"
+    },
+    {
+      "name": "tools-138",
+      "profile": "release notes and documentation",
+      "id": "demo:tools-138"
+    },
+    {
+      "name": "tools-139",
+      "profile": "database backup and migration tooling",
+      "id": "demo:tools-139"
+    },
+    {
+      "name": "tools-140",
+      "profile": "design tokens and component previews",
+      "id": "demo:tools-140"
+    },
+    {
+      "name": "tools-141",
+      "profile": "static marketing pages and accessibility",
+      "id": "demo:tools-141"
+    },
+    {
+      "name": "tools-142",
+      "profile": "internal API clients and generated SDKs",
+      "id": "demo:tools-142"
+    },
+    {
+      "name": "tools-143",
+      "profile": "test fixtures and sandbox examples",
+      "id": "demo:tools-143"
+    },
+    {
+      "name": "tools-144",
+      "profile": "deployment manifests and build artifacts",
+      "id": "demo:tools-144"
+    },
+    {
+      "name": "tools-145",
+      "profile": "load tests and benchmark scripts",
+      "id": "demo:tools-145"
+    },
+    {
+      "name": "tools-146",
+      "profile": "developer onboarding and local tooling",
+      "id": "demo:tools-146"
+    },
+    {
+      "name": "tools-147",
+      "profile": "release notes and documentation",
+      "id": "demo:tools-147"
+    },
+    {
+      "name": "tools-148",
+      "profile": "database backup and migration tooling",
+      "id": "demo:tools-148"
+    },
+    {
+      "name": "tools-149",
+      "profile": "design tokens and component previews",
+      "id": "demo:tools-149"
+    },
+    {
+      "name": "tools-150",
+      "profile": "static marketing pages and accessibility",
+      "id": "demo:tools-150"
+    },
+    {
+      "name": "tools-151",
+      "profile": "internal API clients and generated SDKs",
+      "id": "demo:tools-151"
+    },
+    {
+      "name": "tools-152",
+      "profile": "test fixtures and sandbox examples",
+      "id": "demo:tools-152"
+    },
+    {
+      "name": "tools-153",
+      "profile": "deployment manifests and build artifacts",
+      "id": "demo:tools-153"
+    },
+    {
+      "name": "tools-154",
+      "profile": "load tests and benchmark scripts",
+      "id": "demo:tools-154"
+    },
+    {
+      "name": "tools-155",
+      "profile": "developer onboarding and local tooling",
+      "id": "demo:tools-155"
+    },
+    {
+      "name": "tools-156",
+      "profile": "release notes and documentation",
+      "id": "demo:tools-156"
+    },
+    {
+      "name": "tools-157",
+      "profile": "database backup and migration tooling",
+      "id": "demo:tools-157"
+    },
+    {
+      "name": "tools-158",
+      "profile": "design tokens and component previews",
+      "id": "demo:tools-158"
+    },
+    {
+      "name": "tools-159",
+      "profile": "static marketing pages and accessibility",
+      "id": "demo:tools-159"
+    },
+    {
+      "name": "tools-160",
+      "profile": "internal API clients and generated SDKs",
+      "id": "demo:tools-160"
+    },
+    {
+      "name": "tools-161",
+      "profile": "test fixtures and sandbox examples",
+      "id": "demo:tools-161"
+    },
+    {
+      "name": "tools-162",
+      "profile": "deployment manifests and build artifacts",
+      "id": "demo:tools-162"
+    },
+    {
+      "name": "tools-163",
+      "profile": "load tests and benchmark scripts",
+      "id": "demo:tools-163"
+    },
+    {
+      "name": "tools-164",
+      "profile": "developer onboarding and local tooling",
+      "id": "demo:tools-164"
+    },
+    {
+      "name": "tools-165",
+      "profile": "release notes and documentation",
+      "id": "demo:tools-165"
+    },
+    {
+      "name": "tools-166",
+      "profile": "database backup and migration tooling",
+      "id": "demo:tools-166"
+    },
+    {
+      "name": "tools-167",
+      "profile": "design tokens and component previews",
+      "id": "demo:tools-167"
+    },
+    {
+      "name": "tools-168",
+      "profile": "static marketing pages and accessibility",
+      "id": "demo:tools-168"
+    },
+    {
+      "name": "tools-169",
+      "profile": "internal API clients and generated SDKs",
+      "id": "demo:tools-169"
+    },
+    {
+      "name": "tools-170",
+      "profile": "test fixtures and sandbox examples",
+      "id": "demo:tools-170"
+    },
+    {
+      "name": "tools-171",
+      "profile": "deployment manifests and build artifacts",
+      "id": "demo:tools-171"
+    },
+    {
+      "name": "tools-172",
+      "profile": "load tests and benchmark scripts",
+      "id": "demo:tools-172"
+    },
+    {
+      "name": "tools-173",
+      "profile": "developer onboarding and local tooling",
+      "id": "demo:tools-173"
+    },
+    {
+      "name": "tools-174",
+      "profile": "release notes and documentation",
+      "id": "demo:tools-174"
+    },
+    {
+      "name": "tools-175",
+      "profile": "database backup and migration tooling",
+      "id": "demo:tools-175"
+    },
+    {
+      "name": "tools-176",
+      "profile": "design tokens and component previews",
+      "id": "demo:tools-176"
+    },
+    {
+      "name": "tools-177",
+      "profile": "static marketing pages and accessibility",
+      "id": "demo:tools-177"
+    },
+    {
+      "name": "tools-178",
+      "profile": "internal API clients and generated SDKs",
+      "id": "demo:tools-178"
+    },
+    {
+      "name": "tools-179",
+      "profile": "test fixtures and sandbox examples",
+      "id": "demo:tools-179"
+    },
+    {
+      "name": "tools-180",
+      "profile": "deployment manifests and build artifacts",
+      "id": "demo:tools-180"
+    },
+    {
+      "name": "tools-181",
+      "profile": "load tests and benchmark scripts",
+      "id": "demo:tools-181"
+    },
+    {
+      "name": "tools-182",
+      "profile": "developer onboarding and local tooling",
+      "id": "demo:tools-182"
+    },
+    {
+      "name": "tools-183",
+      "profile": "release notes and documentation",
+      "id": "demo:tools-183"
+    },
+    {
+      "name": "tools-184",
+      "profile": "database backup and migration tooling",
+      "id": "demo:tools-184"
+    },
+    {
+      "name": "tools-185",
+      "profile": "design tokens and component previews",
+      "id": "demo:tools-185"
+    },
+    {
+      "name": "tools-186",
+      "profile": "static marketing pages and accessibility",
+      "id": "demo:tools-186"
+    },
+    {
+      "name": "tools-187",
+      "profile": "internal API clients and generated SDKs",
+      "id": "demo:tools-187"
+    },
+    {
+      "name": "tools-188",
+      "profile": "test fixtures and sandbox examples",
+      "id": "demo:tools-188"
+    },
+    {
+      "name": "tools-189",
+      "profile": "deployment manifests and build artifacts",
+      "id": "demo:tools-189"
+    },
+    {
+      "name": "tools-190",
+      "profile": "load tests and benchmark scripts",
+      "id": "demo:tools-190"
+    },
+    {
+      "name": "tools-191",
+      "profile": "developer onboarding and local tooling",
+      "id": "demo:tools-191"
+    },
+    {
+      "name": "tools-192",
+      "profile": "release notes and documentation",
+      "id": "demo:tools-192"
+    },
+    {
+      "name": "tools-193",
+      "profile": "database backup and migration tooling",
+      "id": "demo:tools-193"
+    },
+    {
+      "name": "tools-194",
+      "profile": "design tokens and component previews",
+      "id": "demo:tools-194"
+    },
+    {
+      "name": "tools-195",
+      "profile": "static marketing pages and accessibility",
+      "id": "demo:tools-195"
+    },
+    {
+      "name": "tools-196",
+      "profile": "internal API clients and generated SDKs",
+      "id": "demo:tools-196"
+    },
+    {
+      "name": "tools-197",
+      "profile": "test fixtures and sandbox examples",
+      "id": "demo:tools-197"
+    },
+    {
+      "name": "tools-198",
+      "profile": "deployment manifests and build artifacts",
+      "id": "demo:tools-198"
+    },
+    {
+      "name": "tools-199",
+      "profile": "load tests and benchmark scripts",
+      "id": "demo:tools-199"
+    },
+    {
+      "name": "tools-200",
+      "profile": "developer onboarding and local tooling",
+      "id": "demo:tools-200"
+    },
+    {
+      "name": "tools-201",
+      "profile": "release notes and documentation",
+      "id": "demo:tools-201"
+    },
+    {
+      "name": "tools-202",
+      "profile": "database backup and migration tooling",
+      "id": "demo:tools-202"
+    },
+    {
+      "name": "tools-203",
+      "profile": "design tokens and component previews",
+      "id": "demo:tools-203"
+    },
+    {
+      "name": "tools-204",
+      "profile": "static marketing pages and accessibility",
+      "id": "demo:tools-204"
+    },
+    {
+      "name": "tools-205",
+      "profile": "internal API clients and generated SDKs",
+      "id": "demo:tools-205"
+    },
+    {
+      "name": "tools-206",
+      "profile": "test fixtures and sandbox examples",
+      "id": "demo:tools-206"
+    },
+    {
+      "name": "tools-207",
+      "profile": "deployment manifests and build artifacts",
+      "id": "demo:tools-207"
+    },
+    {
+      "name": "tools-208",
+      "profile": "load tests and benchmark scripts",
+      "id": "demo:tools-208"
+    },
+    {
+      "name": "tools-209",
+      "profile": "developer onboarding and local tooling",
+      "id": "demo:tools-209"
+    },
+    {
+      "name": "tools-210",
+      "profile": "release notes and documentation",
+      "id": "demo:tools-210"
+    },
+    {
+      "name": "tools-211",
+      "profile": "database backup and migration tooling",
+      "id": "demo:tools-211"
+    },
+    {
+      "name": "tools-212",
+      "profile": "design tokens and component previews",
+      "id": "demo:tools-212"
+    },
+    {
+      "name": "tools-213",
+      "profile": "static marketing pages and accessibility",
+      "id": "demo:tools-213"
+    },
+    {
+      "name": "tools-214",
+      "profile": "internal API clients and generated SDKs",
+      "id": "demo:tools-214"
+    },
+    {
+      "name": "tools-215",
+      "profile": "test fixtures and sandbox examples",
+      "id": "demo:tools-215"
+    },
+    {
+      "name": "tools-216",
+      "profile": "deployment manifests and build artifacts",
+      "id": "demo:tools-216"
+    },
+    {
+      "name": "tools-217",
+      "profile": "load tests and benchmark scripts",
+      "id": "demo:tools-217"
+    },
+    {
+      "name": "tools-218",
+      "profile": "developer onboarding and local tooling",
+      "id": "demo:tools-218"
+    },
+    {
+      "name": "tools-219",
+      "profile": "release notes and documentation",
+      "id": "demo:tools-219"
+    },
+    {
+      "name": "tools-220",
+      "profile": "database backup and migration tooling",
+      "id": "demo:tools-220"
+    },
+    {
+      "name": "tools-221",
+      "profile": "design tokens and component previews",
+      "id": "demo:tools-221"
+    },
+    {
+      "name": "tools-222",
+      "profile": "static marketing pages and accessibility",
+      "id": "demo:tools-222"
+    },
+    {
+      "name": "tools-223",
+      "profile": "internal API clients and generated SDKs",
+      "id": "demo:tools-223"
+    },
+    {
+      "name": "tools-224",
+      "profile": "test fixtures and sandbox examples",
+      "id": "demo:tools-224"
+    }
+  ],
+  "tasks": [
+    {
+      "prompt": "Order receipts never reach the customer inbox; investigate delivery retries",
+      "expected": [
+        "demo:mail-dispatch"
+      ]
+    },
+    {
+      "prompt": "Add a retry cap when confirmation email delivery keeps failing",
+      "expected": [
+        "demo:mail-dispatch"
+      ]
+    },
+    {
+      "prompt": "A coupon discount disappears from the checkout total",
+      "expected": [
+        "demo:checkout"
+      ]
+    },
+    {
+      "prompt": "Reject an expired cart before placing an order",
+      "expected": [
+        "demo:checkout"
+      ]
+    },
+    {
+      "prompt": "Prorate the invoice when a customer upgrades a subscription",
+      "expected": [
+        "demo:billing"
+      ]
+    },
+    {
+      "prompt": "Show a credit note after refunding a recurring payment",
+      "expected": [
+        "demo:billing"
+      ]
+    },
+    {
+      "prompt": "Require MFA after a suspicious login attempt",
+      "expected": [
+        "demo:identity"
+      ]
+    },
+    {
+      "prompt": "Expire the session after a password reset",
+      "expected": [
+        "demo:identity"
+      ]
+    },
+    {
+      "prompt": "Product search should understand synonyms for running shoes",
+      "expected": [
+        "demo:search"
+      ]
+    },
+    {
+      "prompt": "Keep the selected facets while changing a search query",
+      "expected": [
+        "demo:search"
+      ]
+    },
+    {
+      "prompt": "Stop two buyers reserving the last stock item",
+      "expected": [
+        "demo:inventory"
+      ]
+    },
+    {
+      "prompt": "Show warehouse availability before reserving inventory",
+      "expected": [
+        "demo:inventory"
+      ]
+    },
+    {
+      "prompt": "Compare carrier rates before printing a shipment label",
+      "expected": [
+        "demo:shipping"
+      ]
+    },
+    {
+      "prompt": "Refresh parcel tracking when a carrier changes the delivery estimate",
+      "expected": [
+        "demo:shipping"
+      ]
+    },
+    {
+      "prompt": "Approve an exchange for damaged goods without issuing a refund",
+      "expected": [
+        "demo:returns"
+      ]
+    },
+    {
+      "prompt": "Track returns authorization until the refund is issued",
+      "expected": [
+        "demo:returns"
+      ]
+    },
+    {
+      "prompt": "Deduplicate events before computing funnel conversion",
+      "expected": [
+        "demo:analytics"
+      ]
+    },
+    {
+      "prompt": "Add campaign attribution to the analytics dashboard",
+      "expected": [
+        "demo:analytics"
+      ]
+    },
+    {
+      "prompt": "Allow scheduled reports to export CSV attachments",
+      "expected": [
+        "demo:reporting"
+      ]
+    },
+    {
+      "prompt": "Apply the financial report filters before aggregating totals",
+      "expected": [
+        "demo:reporting"
+      ]
+    },
+    {
+      "prompt": "Reject product variants missing a required attribute",
+      "expected": [
+        "demo:catalog"
+      ]
+    },
+    {
+      "prompt": "Move a category without losing catalog merchandising order",
+      "expected": [
+        "demo:catalog"
+      ]
+    },
+    {
+      "prompt": "Round currency conversion consistently in regional price lists",
+      "expected": [
+        "demo:pricing"
+      ]
+    },
+    {
+      "prompt": "Prevent overlapping promotional rules from stacking discounts",
+      "expected": [
+        "demo:pricing"
+      ]
+    },
+    {
+      "prompt": "Escalate a support ticket after the SLA timer expires",
+      "expected": [
+        "demo:support"
+      ]
+    },
+    {
+      "prompt": "Keep customer replies attached when reassigning a support ticket",
+      "expected": [
+        "demo:support"
+      ]
+    },
+    {
+      "prompt": "Restore read receipts after a websocket reconnect",
+      "expected": [
+        "demo:chat"
+      ]
+    },
+    {
+      "prompt": "Show presence changes in a messaging channel",
+      "expected": [
+        "demo:chat"
+      ]
+    },
+    {
+      "prompt": "Generate smaller thumbnails for uploaded images",
+      "expected": [
+        "demo:media"
+      ]
+    },
+    {
+      "prompt": "Retry video transcoding when asset storage is briefly unavailable",
+      "expected": [
+        "demo:media"
+      ]
+    },
+    {
+      "prompt": "Recover a document revision after autosave fails",
+      "expected": [
+        "demo:documents"
+      ]
+    },
+    {
+      "prompt": "Restrict sharing of a collaboratively edited document",
+      "expected": [
+        "demo:documents"
+      ]
+    },
+    {
+      "prompt": "Preserve local time when editing a recurring calendar event",
+      "expected": [
+        "demo:calendar"
+      ]
+    },
+    {
+      "prompt": "Reschedule an appointment reminder across timezone changes",
+      "expected": [
+        "demo:calendar"
+      ]
+    },
+    {
+      "prompt": "Require two approvers before an approval workflow completes",
+      "expected": [
+        "demo:workflow"
+      ]
+    },
+    {
+      "prompt": "Record an audit trail for a rejected state transition",
+      "expected": [
+        "demo:workflow"
+      ]
+    },
+    {
+      "prompt": "Erase expired consent records under the data retention policy",
+      "expected": [
+        "demo:compliance"
+      ]
+    },
+    {
+      "prompt": "Track a privacy erasure request through completion",
+      "expected": [
+        "demo:compliance"
+      ]
+    },
+    {
+      "prompt": "Reject webhook delivery with an invalid signature",
+      "expected": [
+        "demo:webhooks"
+      ]
+    },
+    {
+      "prompt": "Retry failed webhook events without duplicating a subscription",
+      "expected": [
+        "demo:webhooks"
+      ]
+    },
+    {
+      "prompt": "Resolve contact mapping conflicts during CRM synchronization",
+      "expected": [
+        "demo:integrations"
+      ]
+    },
+    {
+      "prompt": "Pause an external connector after repeated sync failures",
+      "expected": [
+        "demo:integrations"
+      ]
+    },
+    {
+      "prompt": "Flag enrolled devices that stop sending a heartbeat",
+      "expected": [
+        "demo:devices"
+      ]
+    },
+    {
+      "prompt": "Roll out firmware updates to a small fleet first",
+      "expected": [
+        "demo:devices"
+      ]
+    },
+    {
+      "prompt": "Revoke resource grants when organization membership ends",
+      "expected": [
+        "demo:permissions"
+      ]
+    },
+    {
+      "prompt": "Deny authorization if a role lacks the required access",
+      "expected": [
+        "demo:permissions"
+      ]
+    },
+    {
+      "prompt": "Keep experiment cohorts stable when rollout percentages change",
+      "expected": [
+        "demo:experiments"
+      ]
+    },
+    {
+      "prompt": "Disable a feature flag for an A/B assignment cohort",
+      "expected": [
+        "demo:experiments"
+      ]
+    },
+    {
+      "prompt": "Suppress duplicate incident alerts during a health check outage",
+      "expected": [
+        "demo:monitoring"
+      ]
+    },
+    {
+      "prompt": "Calculate uptime against the service error budget",
+      "expected": [
+        "demo:monitoring"
+      ]
+    }
+  ],
+  "multi_tasks": [
+    {
+      "prompt": "Trace order confirmation email from checkout to SMTP delivery",
+      "expected": [
+        "demo:checkout",
+        "demo:mail-dispatch"
+      ]
+    },
+    {
+      "prompt": "Explain refunds and invoice credit notes for returned goods",
+      "expected": [
+        "demo:returns",
+        "demo:billing"
+      ]
+    },
+    {
+      "prompt": "Apply product catalog variants to search indexing facets",
+      "expected": [
+        "demo:catalog",
+        "demo:search"
+      ]
+    },
+    {
+      "prompt": "Notify support tickets when incident alerts violate SLA timers",
+      "expected": [
+        "demo:support",
+        "demo:monitoring"
+      ]
+    },
+    {
+      "prompt": "Tie experiment cohorts to analytics funnel conversion",
+      "expected": [
+        "demo:experiments",
+        "demo:analytics"
+      ]
+    }
+  ],
+  "ambiguous": [
+    "Update the static website header",
+    "Improve our developer tooling"
+  ],
+  "absent": [
+    "Track volcanic magma chamber pressure",
+    "Design a quantum entanglement detector"
+  ]
+}

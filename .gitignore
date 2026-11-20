@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+.venv/
+
+# Local packaging and application state
+*.egg-info/
+build/
+dist/
+.opendevengine/
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/
+
+# Local secrets and environments
+.env
+.env.*
+!.env.example
+
+# Tooling
+node_modules/
+.pytest_cache/
+.coverage
+htmlcov/

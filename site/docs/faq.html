@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ and limitations · OpenDevEngine</title>
+<meta name="description" content="Current scope of the early 0.1 release, with planned work kept separate.">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body><a class="skip" href="#main">Skip to content</a>
+<header class="topbar"><a class="brand" href="../index.html"><span class="mark" aria-hidden="true">/</span>OpenDevEngine</a>
+<nav aria-label="Primary"><a href="index.html">Documentation</a><a href="https://github.com/opendevengine/opendevengine">GitHub <span aria-hidden="true">↗</span></a>
+</nav>
+</header>
+<div class="docs-layout">
+<aside class="sidebar">
+<nav aria-label="Documentation">
+<p class="eyebrow">User manual</p><a href="index.html">Overview</a><a href="getting-started.html">Getting started</a><a href="github.html">GitHub connection</a><a href="indexing.html">Repository indexing</a><a href="asking.html">Asking and planning</a><a href="sessions.html">Implementation sessions</a><a href="pull-requests.html">Pull requests</a><a href="models.html">Models and providers</a><a href="configuration.html">Configuration and data</a><a href="troubleshooting.html">Troubleshooting</a><a href="security.html">Security model</a><a href="faq.html" aria-current="page">FAQ and limitations</a>
+</nav>
+</aside>
+<main id="main" tabindex="-1">
+<article>
+<header class="page-intro">
+<p class="eyebrow">Documentation / FAQ and limitations</p>
+<h1>FAQ and limitations</h1>
+<p class="lead">Current scope of the early 0.1 release, with planned work kept separate.</p>
+</header>
+<h2 id="local">Is everything local?</h2>
+<p>Storage is local and inference is local by default. Hosted providers require consent. Implementation uses Claude Code on the host and sends permitted source and the plan to Anthropic, while repository tools run in a network-disabled container.</p>
+<h2 id="account">Can I reuse my GitHub CLI login?</h2>
+<p>No. Connect a GitHub App through Settings. Claude Code uses its own existing login for inference.</p>
+<h2 id="agents">Can I use another coding agent?</h2>
+<p>Claude Code is the only implementation adapter in this release. Ollama and compatible endpoints serve model roles; a chat endpoint alone cannot run an implementation session. A Codex CLI adapter is planned for M4.</p>
+<h2 id="multiple">Can one session change multiple repositories?</h2>
+<p>No. A session has one writable repository. Plans can describe broader work, but unsupported multi-write scope blocks launch. Richer cross-repository execution is planned for M4.</p>
+<h2 id="history">Does indexing include all history and local edits?</h2>
+<p>No. The app uses committed snapshots, not uncommitted files or all Git history. Index limits and exclusions can produce partial coverage. Inspect the citation’s recorded commit and the index status.</p>
+<h2 id="merge">Does the app merge or deploy?</h2>
+<p>No. It publishes draft PRs under the recorded publication policy. You review them on GitHub. It never merges or pushes to a default branch.</p>
+<h2 id="customization">Where are skills, plugins and memory?</h2>
+<p>User-managed skills, approved plugins/MCP tools and scoped memory are planned for M3 and are not built. The current adapter disables Claude Code’s own hooks, plugins, memory and slash commands.</p>
+<h2 id="limits">What else should I know?</h2>
+<p>This is an early release for one user on one computer, without network-facing authentication. CPU-only local models may be slow. Sessions need Docker, a prepared image and a logged-in Claude Code CLI. Deleting local session content does not delete GitHub PRs or backups. There are no performance guarantees in this manual.</p>
+<nav class="page-next" aria-label="Continue reading"><a href="security.html">← Security model</a>
+</nav>
+</article>
+</main>
+</div>
+<footer>
+<p>OpenDevEngine · Early release 0.1 · Runs on your computer.</p><a href="../docs/security.html">Security model</a><a href="https://github.com/opendevengine/opendevengine">Source on GitHub</a>
+</footer>
+</body>
+</html>

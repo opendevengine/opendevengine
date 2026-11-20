@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Models and providers · OpenDevEngine</title>
+<meta name="description" content="Choose models by role. A chat provider and an execution profile serve different purposes.">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body><a class="skip" href="#main">Skip to content</a>
+<header class="topbar"><a class="brand" href="../index.html"><span class="mark" aria-hidden="true">/</span>OpenDevEngine</a>
+<nav aria-label="Primary"><a href="index.html">Documentation</a><a href="https://github.com/opendevengine/opendevengine">GitHub <span aria-hidden="true">↗</span></a>
+</nav>
+</header>
+<div class="docs-layout">
+<aside class="sidebar">
+<nav aria-label="Documentation">
+<p class="eyebrow">User manual</p><a href="index.html">Overview</a><a href="getting-started.html">Getting started</a><a href="github.html">GitHub connection</a><a href="indexing.html">Repository indexing</a><a href="asking.html">Asking and planning</a><a href="sessions.html">Implementation sessions</a><a href="pull-requests.html">Pull requests</a><a href="models.html" aria-current="page">Models and providers</a><a href="configuration.html">Configuration and data</a><a href="troubleshooting.html">Troubleshooting</a><a href="security.html">Security model</a><a href="faq.html">FAQ and limitations</a>
+</nav>
+</aside>
+<main id="main" tabindex="-1">
+<article>
+<header class="page-intro">
+<p class="eyebrow">Documentation / Models and providers</p>
+<h1>Models and providers</h1>
+<p class="lead">Choose models by role. A chat provider and an execution profile serve different purposes.</p>
+</header>
+<h2 id="providers">Supported providers</h2>
+<dl>
+<dt>Ollama</dt>
+<dd>Local chat and embedding models, with automatic local discovery.</dd>
+<dt>OpenAI-compatible endpoints</dt>
+<dd>Local servers such as LM Studio, vLLM or llama.cpp, and hosted APIs with compatible capabilities.</dd>
+<dt>Claude Code CLI</dt>
+<dd>Chat for answers, plans and summaries using your own subscription login. No embeddings.</dd>
+</dl>
+<h2 id="roles">Assign roles</h2>
+<p>In Settings → Models, create a profile, configure its endpoint and model, test the connection, then assign it to answering, planning, repository summaries or embeddings. Chat roles require a chat-capable profile. Embeddings require an embedding-capable Ollama or OpenAI-compatible profile. Connection tests use synthetic content, not repository source.</p>
+<p>Starting with an existing downloaded Ollama model:</p>
+<pre tabindex="0" aria-label="Command example"><code>opendevengine --model llama3.1:8b --data-dir ./workspace-data</code>
+</pre>
+<p><code>--model</code> seeds only unassigned Ask and planning roles; it does not overwrite existing assignments or select the coding agent’s model. The default Ollama loopback port is <code>11434</code>; change it with <code>--ollama-port</code>.</p>
+<h2 id="privacy">Enable remote inference deliberately</h2>
+<p><strong>Keep everything on this computer</strong> is on by default. Remote providers require turning it off and explicitly allowing the profile to receive source. Remote embeddings also transmit source. Credentials go into the OS vault. Local storage alone does not imply local inference.</p>
+<h2 id="timeouts">Timeouts and local hardware</h2>
+<p>Provider profiles default to a 60-second timeout; the local Ollama profile created by <code>--model</code> uses 600 seconds (10 minutes). Profile timeouts are adjustable from 1 to 600 seconds. Large local models can take minutes on a CPU; plans need longer structured output than short answers.</p>
+<p>Use a smaller downloaded model or GPU-backed hardware if necessary. <code>ollama ps</code> shows CPU/GPU use. Hosted inference is another option after source-sharing consent. Unknown pricing must not be treated as zero cost.</p>
+<p>For Docker images, agent limits and the optional Claude execution model, see <a href="sessions.html#profile">execution profiles</a>.</p>
+<nav class="page-next" aria-label="Continue reading"><a href="pull-requests.html">← Pull requests</a><a href="configuration.html">Configuration and data →</a>
+</nav>
+</article>
+</main>
+</div>
+<footer>
+<p>OpenDevEngine · Early release 0.1 · Runs on your computer.</p><a href="../docs/security.html">Security model</a><a href="https://github.com/opendevengine/opendevengine">Source on GitHub</a>
+</footer>
+</body>
+</html>

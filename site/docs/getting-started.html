@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Getting started · OpenDevEngine</title>
+<meta name="description" content="Run a local workspace, then choose the repositories it can read.">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body><a class="skip" href="#main">Skip to content</a>
+<header class="topbar"><a class="brand" href="../index.html"><span class="mark" aria-hidden="true">/</span>OpenDevEngine</a>
+<nav aria-label="Primary"><a href="index.html">Documentation</a><a href="https://github.com/opendevengine/opendevengine">GitHub <span aria-hidden="true">↗</span></a>
+</nav>
+</header>
+<div class="docs-layout">
+<aside class="sidebar">
+<nav aria-label="Documentation">
+<p class="eyebrow">User manual</p><a href="index.html">Overview</a><a href="getting-started.html" aria-current="page">Getting started</a><a href="github.html">GitHub connection</a><a href="indexing.html">Repository indexing</a><a href="asking.html">Asking and planning</a><a href="sessions.html">Implementation sessions</a><a href="pull-requests.html">Pull requests</a><a href="models.html">Models and providers</a><a href="configuration.html">Configuration and data</a><a href="troubleshooting.html">Troubleshooting</a><a href="security.html">Security model</a><a href="faq.html">FAQ and limitations</a>
+</nav>
+</aside>
+<main id="main" tabindex="-1">
+<article>
+<header class="page-intro">
+<p class="eyebrow">Documentation / Getting started</p>
+<h1>Getting started</h1>
+<p class="lead">Run a local workspace, then choose the repositories it can read.</p>
+</header>
+<h2 id="requirements">Requirements</h2>
+<p>Install Python 3.10 or later with SQLite FTS5 and Git. Python.org and Homebrew Python builds include FTS5. Docker and an installed, logged-in Claude Code CLI are needed for implementation sessions, not for exploring the demo.</p>
+<h2 id="install">Install and run</h2>
+<pre tabindex="0" aria-label="Command example"><code>git clone https://github.com/opendevengine/opendevengine.git workspace
+cd workspace
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e &#x27;.[full]&#x27;
+opendevengine --data-dir ./workspace-data</code>
+</pre>
+<p>In your browser, open <code>http://127.0.0.1:8765</code>. Keep the terminal running. The example uses a data directory inside this checkout; choose a private directory outside any repository you intend to index for everyday use. This example uses a POSIX shell; activate the virtual environment using your shell’s equivalent on other systems.</p>
+<h2 id="demo">Try the demo first</h2>
+<pre tabindex="0" aria-label="Command example"><code>python3 -m opendevengine</code>
+</pre>
+<p>With no <code>--data-dir</code>, the app uses memory and four bundled sample repositories. Nothing persists after exit. The demo runs without optional packages. Persistent storage is required for GitHub credentials and implementation sessions.</p>
+<h2 id="first-repository">Your first repository</h2>
+<ol>
+<li>Open Settings → GitHub and <a href="github.html">connect a GitHub App</a>.</li>
+<li>On Repositories, enable <strong>Use in Ask</strong> for a repository.</li>
+<li>Wait for a usable index, then attach the repository in Ask and ask where a feature lives.</li>
+<li>Open a citation to inspect the indexed source. Generate a plan when you are ready to describe a change.</li>
+</ol>
+<p>To explore explicit local checkouts instead:</p>
+<pre tabindex="0" aria-label="Command example"><code>opendevengine --repo web=../storefront --repo api=../orders-api</code>
+</pre>
+<p>These paths must be Git checkouts with a committed <code>HEAD</code>. Repeat <code>--repo NAME=PATH</code> up to eight times. Local and demo sources support Ask; they do not grant GitHub publication permission.</p>
+<p>Next: <a href="models.html">assign models</a> for answers and plans, or read <a href="sessions.html">session setup</a>.</p>
+<nav class="page-next" aria-label="Continue reading"><a href="index.html">← Overview</a><a href="github.html">GitHub connection →</a>
+</nav>
+</article>
+</main>
+</div>
+<footer>
+<p>OpenDevEngine · Early release 0.1 · Runs on your computer.</p><a href="../docs/security.html">Security model</a><a href="https://github.com/opendevengine/opendevengine">Source on GitHub</a>
+</footer>
+</body>
+</html>

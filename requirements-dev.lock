@@ -1,0 +1,13 @@
+# Verified local development environment: macOS x86_64, Python3.12.
+# Other platforms should resolve project extras before generating their own environment lock.
+apsw==3.54.1.0
+cffi==2.1.1
+cryptography==48.0.1
+jaraco.classes==3.4.0
+jaraco.context==6.1.2
+jaraco.functools==4.6.0
+keyring==25.7.0
+more-itertools==11.2.1
+opendevengine==0.1.0
+pycparser==3.12
+sqlite-vec==0.1.9

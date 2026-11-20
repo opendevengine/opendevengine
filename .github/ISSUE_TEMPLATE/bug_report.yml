@@ -1,0 +1,49 @@
+name: Bug report
+description: Something does not work as documented
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do not report security vulnerabilities here; see SECURITY.md.
+        Remove tokens, private source and private repository names from logs before pasting.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start with `opendevengine --data-dir ...`
+        2. Open Settings → ...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [Ask and plans, Repositories and indexing, GitHub connection, Model providers, Sessions, Pull requests, Settings, Install / startup, Other]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: 0.1.0 or a commit SHA
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      placeholder: macOS 15 / Ubuntu 24.04, Python 3.12, Docker 27, browser
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output
+      render: text

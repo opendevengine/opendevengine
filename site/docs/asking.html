@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Asking and planning · OpenDevEngine</title>
+<meta name="description" content="Find the relevant code, inspect the evidence, then save a plan before starting execution.">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body><a class="skip" href="#main">Skip to content</a>
+<header class="topbar"><a class="brand" href="../index.html"><span class="mark" aria-hidden="true">/</span>OpenDevEngine</a>
+<nav aria-label="Primary"><a href="index.html">Documentation</a><a href="https://github.com/opendevengine/opendevengine">GitHub <span aria-hidden="true">↗</span></a>
+</nav>
+</header>
+<div class="docs-layout">
+<aside class="sidebar">
+<nav aria-label="Documentation">
+<p class="eyebrow">User manual</p><a href="index.html">Overview</a><a href="getting-started.html">Getting started</a><a href="github.html">GitHub connection</a><a href="indexing.html">Repository indexing</a><a href="asking.html" aria-current="page">Asking and planning</a><a href="sessions.html">Implementation sessions</a><a href="pull-requests.html">Pull requests</a><a href="models.html">Models and providers</a><a href="configuration.html">Configuration and data</a><a href="troubleshooting.html">Troubleshooting</a><a href="security.html">Security model</a><a href="faq.html">FAQ and limitations</a>
+</nav>
+</aside>
+<main id="main" tabindex="-1">
+<article>
+<header class="page-intro">
+<p class="eyebrow">Documentation / Asking and planning</p>
+<h1>Asking and planning</h1>
+<p class="lead">Find the relevant code, inspect the evidence, then save a plan before starting execution.</p>
+</header>
+<h2 id="route">Choose the repository</h2>
+<p>Name a repository in your question or attach it with <strong>+</strong>. When routing cannot choose, Ask requests a repository choice and shows matching terms for its suggestions. The waiting question and choice survive reloads and restarts in persistent mode.</p>
+<h2 id="citations">Inspect citations</h2>
+<p>Answers cite files and line ranges from indexed commits. Open a citation to see the recorded source, and check index freshness and coverage. Ask reads and calls your configured models; it never runs repository commands or edits files. Model output still needs your review.</p>
+<h2 id="plan">Generate and edit a plan</h2>
+<ol>
+<li>Describe the intended change with the target repository attached.</li>
+<li>Choose <strong>Generate plan</strong>.</li>
+<li>Inspect the findings, scope, changes, validation commands, risks and unanswered questions.</li>
+<li>Use <strong>Edit plan</strong> to make changes, then <strong>Save immutable version</strong>.</li>
+</ol>
+<p>Versions retain their source snapshots and content hashes. Starting a session uses the chosen version, not a silently updated plan.</p>
+<h2 id="ready">Make it ready to start</h2>
+<p>A launch needs one writable GitHub repository, usable source, current permissions, no blocking questions and a tested execution profile. With exactly one tested profile, new plans use it. With several, choose one under <strong>Edit plan → Execution and publication</strong> and save a new version.</p>
+<p>If the base branch advanced, choose deliberately between retaining the saved base and regenerating the plan. A saved-base acknowledgement does not rebase the code. Multi-repository planning does not enable multi-repository writes.</p>
+<p>Next: <a href="sessions.html">start a session</a>.</p>
+<nav class="page-next" aria-label="Continue reading"><a href="indexing.html">← Repository indexing</a><a href="sessions.html">Implementation sessions →</a>
+</nav>
+</article>
+</main>
+</div>
+<footer>
+<p>OpenDevEngine · Early release 0.1 · Runs on your computer.</p><a href="../docs/security.html">Security model</a><a href="https://github.com/opendevengine/opendevengine">Source on GitHub</a>
+</footer>
+</body>
+</html>

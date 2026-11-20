@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security model · OpenDevEngine</title>
+<meta name="description" content="Designed for one user on their own computer. Local-first does not mean every model runs locally.">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body><a class="skip" href="#main">Skip to content</a>
+<header class="topbar"><a class="brand" href="../index.html"><span class="mark" aria-hidden="true">/</span>OpenDevEngine</a>
+<nav aria-label="Primary"><a href="index.html">Documentation</a><a href="https://github.com/opendevengine/opendevengine">GitHub <span aria-hidden="true">↗</span></a>
+</nav>
+</header>
+<div class="docs-layout">
+<aside class="sidebar">
+<nav aria-label="Documentation">
+<p class="eyebrow">User manual</p><a href="index.html">Overview</a><a href="getting-started.html">Getting started</a><a href="github.html">GitHub connection</a><a href="indexing.html">Repository indexing</a><a href="asking.html">Asking and planning</a><a href="sessions.html">Implementation sessions</a><a href="pull-requests.html">Pull requests</a><a href="models.html">Models and providers</a><a href="configuration.html">Configuration and data</a><a href="troubleshooting.html">Troubleshooting</a><a href="security.html" aria-current="page">Security model</a><a href="faq.html">FAQ and limitations</a>
+</nav>
+</aside>
+<main id="main" tabindex="-1">
+<article>
+<header class="page-intro">
+<p class="eyebrow">Documentation / Security model</p>
+<h1>Security model</h1>
+<p class="lead">Designed for one user on their own computer. Local-first does not mean every model runs locally.</p>
+</header>
+<h2 id="network">Loopback, single user</h2>
+<p>The server binds to <code>127.0.0.1</code> and checks request hosts and origins. It has no login and must not be exposed on a network or the internet. This is not a shared-host or multi-tenant service.</p>
+<h2 id="credentials">Credentials and source</h2>
+<p>GitHub App keys and provider API keys live in macOS Keychain, Linux Secret Service or Windows Credential Manager. If secure storage is unavailable, setup is blocked. There is no plaintext fallback.</p>
+<p>Local-only mode is on by default. Sending source to a remote model requires disabling it and opting the relevant provider or execution profile in. Connection tests send synthetic content. The selected data directory contains source-bearing records, so protect it and any backups.</p>
+<h2 id="read">Read-only Ask and indexing</h2>
+<p>Ask reads indexed snapshots and calls configured models; it never executes repository commands or changes files. Indexing reads committed source without running install or build scripts, excluding credential-like and generated files. Exclusions reduce exposure; inspect content before enabling external processing.</p>
+<h2 id="execution">Precisely what is isolated</h2>
+<p>Each session’s repository copy and commands run in a container with <code>--network none</code>, all capabilities dropped, a read-only root filesystem and memory, CPU, process and time limits. Images must already be present locally. A host checkout alone is not an isolation boundary.</p>
+<p>The Claude Code CLI itself runs on the host, in an empty private temporary directory. Its built-in tools, hooks, plugins, settings, memory and slash commands are disabled; it acts only through brokered tools into the container. The CLI still needs network access to Anthropic and uses your own login. The agent receives the saved plan and permitted source. Treat this as read/write access to a repository copy and review the diff.</p>
+<p>Stopping requests termination and confirms the agent and container are gone, or reports containment failure. Isolation depends on your OS, Docker and the coding CLI; this does not protect against someone already controlling your account, machine or vault.</p>
+<h2 id="writes">Publication and authority</h2>
+<p>Only explicitly enabled repositories can receive changes, on new <code>opendevengine/…</code> branches as draft PRs. The app never merges or pushes to a default branch. Repository content and model output cannot widen a plan’s scope or permissions. User-managed skills, plugins/MCP and memory are not available yet.</p>
+<h2 id="report">Report a vulnerability</h2>
+<p>Use <strong>Security → Report a vulnerability</strong> on the GitHub repository. Do not post an unfixed vulnerability in a public issue, discussion or PR. Include version or commit, operating system, reproduction steps and observed impact.</p>
+<nav class="page-next" aria-label="Continue reading"><a href="troubleshooting.html">← Troubleshooting</a><a href="faq.html">FAQ and limitations →</a>
+</nav>
+</article>
+</main>
+</div>
+<footer>
+<p>OpenDevEngine · Early release 0.1 · Runs on your computer.</p><a href="../docs/security.html">Security model</a><a href="https://github.com/opendevengine/opendevengine">Source on GitHub</a>
+</footer>
+</body>
+</html>

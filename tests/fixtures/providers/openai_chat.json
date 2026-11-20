@@ -1,0 +1,26 @@
+{
+  "id": "chatcmpl-synthetic0001",
+  "object": "chat.completion",
+  "created": 1794564902,
+  "model": "synthetic-chat-model",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "ok",
+        "refusal": null
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 19,
+    "completion_tokens": 1,
+    "total_tokens": 20,
+    "prompt_tokens_details": {"cached_tokens": 0},
+    "completion_tokens_details": {"reasoning_tokens": 0}
+  },
+  "system_fingerprint": "fp_synthetic"
+}

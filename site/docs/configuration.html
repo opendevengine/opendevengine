@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Configuration and data · OpenDevEngine</title>
+<meta name="description" content="Choose persistent storage explicitly and keep the server on loopback.">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body><a class="skip" href="#main">Skip to content</a>
+<header class="topbar"><a class="brand" href="../index.html"><span class="mark" aria-hidden="true">/</span>OpenDevEngine</a>
+<nav aria-label="Primary"><a href="index.html">Documentation</a><a href="https://github.com/opendevengine/opendevengine">GitHub <span aria-hidden="true">↗</span></a>
+</nav>
+</header>
+<div class="docs-layout">
+<aside class="sidebar">
+<nav aria-label="Documentation">
+<p class="eyebrow">User manual</p><a href="index.html">Overview</a><a href="getting-started.html">Getting started</a><a href="github.html">GitHub connection</a><a href="indexing.html">Repository indexing</a><a href="asking.html">Asking and planning</a><a href="sessions.html">Implementation sessions</a><a href="pull-requests.html">Pull requests</a><a href="models.html">Models and providers</a><a href="configuration.html" aria-current="page">Configuration and data</a><a href="troubleshooting.html">Troubleshooting</a><a href="security.html">Security model</a><a href="faq.html">FAQ and limitations</a>
+</nav>
+</aside>
+<main id="main" tabindex="-1">
+<article>
+<header class="page-intro">
+<p class="eyebrow">Documentation / Configuration and data</p>
+<h1>Configuration and data</h1>
+<p class="lead">Choose persistent storage explicitly and keep the server on loopback.</p>
+</header>
+<h2 id="flags">Command-line options</h2>
+<div class="table-scroll" tabindex="0" role="region" aria-label="Command-line options">
+<table>
+<thead>
+<tr><th>Option</th><th>Behavior and default</th>
+</tr>
+</thead>
+<tbody>
+<tr><td><code>--data-dir PATH</code></td><td>Persist workspace state here. Omitted: in-memory demo. There is no default persistent directory.</td>
+</tr>
+<tr><td><code>--port NUMBER</code></td><td>Web app loopback port; default 8765.</td>
+</tr>
+<tr><td><code>--model NAME</code></td><td>Local Ollama model for unassigned Ask/planning roles; omitted: no CLI-seeded model.</td>
+</tr>
+<tr><td><code>--ollama-port NUMBER</code></td><td>Ollama loopback port; default 11434.</td>
+</tr>
+<tr><td><code>--repo NAME=PATH</code></td><td>Index an explicit local checkout at HEAD; repeat up to eight times. Omitted: bundled sample sources.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Check your installed version with <code>python3 -m opendevengine --help</code>. There is no host-binding option: the server binds to <code>127.0.0.1</code>. No environment variables are needed for the setup in this manual.</p>
+<h2 id="storage">What is stored</h2>
+<p>The selected data directory holds <code>opendevengine.sqlite3</code>, with SQLite WAL sidecars during use. Persistent records include conversations, immutable plan versions, indexed source, settings and session artifacts. Treat this directory as private source-bearing data. Credentials themselves are in the OS vault, referenced by ID.</p>
+<p>The current implementation stores session artifacts in SQLite. Runtime/session-owned files may also exist below the data directory. Session purge removes retained content from active records; it does not erase backups or remove independent plans and repository indexes.</p>
+<h2 id="settings">Settings in the app</h2>
+<p>Use Settings for GitHub, provider profiles and model roles, privacy, coding-agent execution profiles and the pull request author. Use Repositories to control reading and changes separately. Settings that affect a new plan or session do not rewrite its historical version.</p>
+<p>Keep persistent data outside the repositories you index. Do not use a development build against a data directory containing credentials you care about. See <a href="security.html">security</a> before sharing diagnostics or backups.</p>
+<nav class="page-next" aria-label="Continue reading"><a href="models.html">← Models and providers</a><a href="troubleshooting.html">Troubleshooting →</a>
+</nav>
+</article>
+</main>
+</div>
+<footer>
+<p>OpenDevEngine · Early release 0.1 · Runs on your computer.</p><a href="../docs/security.html">Security model</a><a href="https://github.com/opendevengine/opendevengine">Source on GitHub</a>
+</footer>
+</body>
+</html>

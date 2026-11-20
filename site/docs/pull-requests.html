@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pull requests · OpenDevEngine</title>
+<meta name="description" content="Publication is a separate, explicit step after implementation.">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body><a class="skip" href="#main">Skip to content</a>
+<header class="topbar"><a class="brand" href="../index.html"><span class="mark" aria-hidden="true">/</span>OpenDevEngine</a>
+<nav aria-label="Primary"><a href="index.html">Documentation</a><a href="https://github.com/opendevengine/opendevengine">GitHub <span aria-hidden="true">↗</span></a>
+</nav>
+</header>
+<div class="docs-layout">
+<aside class="sidebar">
+<nav aria-label="Documentation">
+<p class="eyebrow">User manual</p><a href="index.html">Overview</a><a href="getting-started.html">Getting started</a><a href="github.html">GitHub connection</a><a href="indexing.html">Repository indexing</a><a href="asking.html">Asking and planning</a><a href="sessions.html">Implementation sessions</a><a href="pull-requests.html" aria-current="page">Pull requests</a><a href="models.html">Models and providers</a><a href="configuration.html">Configuration and data</a><a href="troubleshooting.html">Troubleshooting</a><a href="security.html">Security model</a><a href="faq.html">FAQ and limitations</a>
+</nav>
+</aside>
+<main id="main" tabindex="-1">
+<article>
+<header class="page-intro">
+<p class="eyebrow">Documentation / Pull requests</p>
+<h1>Pull requests</h1>
+<p class="lead">Publication is a separate, explicit step after implementation.</p>
+</header>
+<h2 id="review">Review before publishing</h2>
+<p>Publication is manual by default. Automatic draft publication requires an explicit success-only policy saved with the plan.</p>
+<ol>
+<li>Open the finished session’s <strong>PR</strong> tab and choose <strong>Create draft PR</strong>.</li>
+<li>Review repository, base and head branches, changed paths, omitted files and checks.</li>
+<li>Edit the proposed title and description.</li>
+<li>Choose <strong>Publish draft PR</strong>.</li>
+</ol>
+<p>The title defaults to the saved plan goal. The description includes plan steps, recorded checks, omitted generated paths and limitations. Inspect the actual diff and checks; a model’s summary is not validation.</p>
+<h2 id="published">What leaves your computer</h2>
+<p>The publisher sends eligible changed file contents and deletions, a commit with your configured author identity, a new branch, and the PR title and description to GitHub. Publication uses the recorded checkpoint, not a patch reconstructed from model text. The default description excludes source contents, patches and validation output.</p>
+<p>Only new <code>opendevengine/…</code> branches and draft PRs are created. The app never merges or pushes to a default branch. <strong>Allow changes</strong> must still be on.</p>
+<h2 id="excluded">Omitted and blocked paths</h2>
+<p>Newly added generated artifacts, such as <code>__pycache__/</code>, are omitted and listed in the preview and default description. Other rejected paths block publication, including modified or deleted tracked files matching generated patterns. Sensitive content, missing artifacts or changed permissions can also block it.</p>
+<h2 id="checks">Checks and branch freshness</h2>
+<p>Manual publication can disclose failed or unavailable checks. A success-only automatic publication policy additionally requires passed required validation and a reviewable completed outcome. Review publication intent in the saved plan; a follow-up message cannot change the frozen policy.</p>
+<p>If the base moved, overlapping or incompletely known changes can block publication. The app does not silently rebase.</p>
+<h2 id="retry">Retry without duplicating</h2>
+<p>If a GitHub response is lost, the app reconciles recorded branch and PR state on restart or Retry. Retry continues the same publication intent rather than rerunning implementation or creating a second PR. Deleting local session content does not delete a published PR.</p>
+<nav class="page-next" aria-label="Continue reading"><a href="sessions.html">← Implementation sessions</a><a href="models.html">Models and providers →</a>
+</nav>
+</article>
+</main>
+</div>
+<footer>
+<p>OpenDevEngine · Early release 0.1 · Runs on your computer.</p><a href="../docs/security.html">Security model</a><a href="https://github.com/opendevengine/opendevengine">Source on GitHub</a>
+</footer>
+</body>
+</html>

@@ -1,0 +1,10 @@
+[
+  {"kind":"exact","query":"send_order","paths":["worker.py"]},
+  {"kind":"exact","query":"invoice","paths":["billing.py"]},
+  {"kind":"exact","query":"Synthetic","paths":["README.md"]},
+  {"kind":"paraphrase","query":"delivery","paths":["worker.py"]},
+  {"kind":"paraphrase","query":"fulfillment","paths":["worker.py"]},
+  {"kind":"paraphrase","query":"billing","paths":["billing.py"]},
+  {"kind":"ambiguous","query":"return","paths":["worker.py","billing.py"]},
+  {"kind":"absent","query":"quantum accelerometer","paths":[]}
+]
