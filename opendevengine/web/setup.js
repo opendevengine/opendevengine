@@ -2,7 +2,7 @@
 import { button, el } from "./ui.js";
 import { STORAGE_NEEDED, startInstall, startManifest } from "./settings.js";
 import { readRepositoryPages } from "./repo-source.js";
-import { useDiscoveredModel } from "./settings-models.js";
+import { remoteOllamaHost, useDiscoveredModel } from "./settings-models.js";
 
 const enc = encodeURIComponent;
 
@@ -48,7 +48,9 @@ export async function renderSetup(host, { request, onDone = () => {}, onRoles = 
   }
   const again = () => renderSetup(host, { request, onDone, onRoles, submitForm, navigate });
   const box = el("section", undefined, "setup");
-  box.append(el("h2", "Set up OpenDevEngine"), el("p", "Everything stays on this computer. About 3 minutes.", "detail-muted"));
+  const ollamaHost = remoteOllamaHost(discovered.base_url);
+  const where = ollamaHost ? `Everything stays on this computer and your Ollama machine (${ollamaHost}).` : "Everything stays on this computer.";
+  box.append(el("h2", "Set up OpenDevEngine"), el("p", `${where} About 3 minutes.`, "detail-muted"));
   const list = el("ol", undefined, "setup-steps");
 
   const github = step(1, "Connect GitHub", state.githubConnected);
@@ -110,7 +112,8 @@ export async function renderSetup(host, { request, onDone = () => {}, onRoles = 
     const choose = el("a", "Choose…");
     choose.setAttribute("href", "#/settings/models");
     if (chat) {
-      models.body.append(el("p", `Found Ollama with ${[chat.name, embed?.name].filter(Boolean).join(" and ")}. Use them?`, "detail-muted"));
+      const found = ollamaHost ? `Found Ollama on ${ollamaHost}` : "Found Ollama";
+      models.body.append(el("p", `${found} with ${[chat.name, embed?.name].filter(Boolean).join(" and ")}. Use them?`, "detail-muted"));
       const output = el("p", "", "detail-muted");
       button(models.body, "Use these", async (event, control) => {
         control.disabled = true;
@@ -126,7 +129,10 @@ export async function renderSetup(host, { request, onDone = () => {}, onRoles = 
       }, { variant: "primary" });
       models.body.append(choose, output);
     } else {
-      models.body.append(el("p", "No local Ollama models found. Install Ollama and pull a model, or add a provider.", "detail-muted"), choose);
+      const missing = !ollamaHost ? "No local Ollama models found. Install Ollama and pull a model, or add a provider."
+        : discovered.reachable ? `Ollama on ${ollamaHost} has no models yet. Pull one there, or add a provider.`
+          : `Can't reach Ollama on ${ollamaHost}. Check it is running and listening on that address, then reload, or add a provider.`;
+      models.body.append(el("p", missing, "detail-muted"), choose);
     }
   }
 

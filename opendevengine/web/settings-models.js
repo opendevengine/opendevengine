@@ -17,6 +17,9 @@ const isRemote = (value) => {
   return !(host === "localhost" || host === "[::1]" || /^127(\.\d{1,3}){3}$/.test(host));
 };
 
+// The host:port of a configured Ollama on another machine (--ollama-url), or null when it is this computer.
+export const remoteOllamaHost = (base) => (base && isRemote(base) ? new URL(base).host : null);
+
 // Creates (or reuses) an Ollama profile for a discovered model and assigns it to a role. `endpoint` is
 // the address discovery reported (the server's configured Ollama).
 export async function useDiscoveredModel(request, role, model, endpoint = OLLAMA) {
@@ -220,7 +223,7 @@ export async function mountModels(host, { request, onChange = null }) {
     return row;
   };
   const ollamaBase = discovered.base_url ?? OLLAMA;
-  const ollamaWhere = isRemote(ollamaBase) ? `Runs models on ${new URL(ollamaBase).host}.` : "Runs models on this computer.";
+  const ollamaWhere = remoteOllamaHost(ollamaBase) ? `Runs models on ${remoteOllamaHost(ollamaBase)}.` : "Runs models on this computer.";
   const ollamaRow = sourceRow("Ollama", discovered.reachable ? ollamaWhere : "Not running. Start Ollama, then Retry.",
     discovered.reachable ? { text: `Connected · ${models.length} ${models.length === 1 ? "model" : "models"}`, tone: "good" } : { text: "Not running", tone: "warn" });
   button(ollamaRow, discovered.reachable ? "Refresh" : "Retry", () => mountModels(host, { request, onChange }));
