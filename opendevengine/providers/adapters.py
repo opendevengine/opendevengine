@@ -48,6 +48,9 @@ class OllamaAdapter:
                 'options': {'num_predict': max_tokens, 'num_ctx': context_limit}}
         if schema is not None:
             body['format'] = schema
+            # Thinking models (e.g. qwen3) otherwise reason first and can spend the whole
+            # num_predict budget before emitting JSON; structured replies need no visible reasoning.
+            body['think'] = False
         return body
 
     def parse_chat(self, payload):

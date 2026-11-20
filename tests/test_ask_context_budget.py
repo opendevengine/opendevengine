@@ -23,6 +23,7 @@ class AskContextBudgetTests(TestCase):
         self.assertEqual(f.service.get_run(run['id'])['state'],'completed')
         body=json.loads(f.transport.requests[0].body)
         self.assertNotIn('format',body)  # Chat-only profiles retain server validation.
+        self.assertNotIn('think',body)  # Free-form chat keeps the model's default.
         size=sum(len(m['content'].encode()) for m in body['messages'])
         self.assertLessEqual(size,(512-128)*4-256)
         payload=json.loads(body['messages'][1]['content'])
@@ -98,5 +99,6 @@ class AskContextBudgetTests(TestCase):
         self.assertEqual(f.service.get_run(run['id'])['state'],'completed')
         body=json.loads(f.transport.requests[0].body)
         self.assertIn('format',body)
+        self.assertIs(body['think'],False)  # Thinking must not exhaust the plan's token budget.
         self.assertLessEqual(sum(len(m['content'].encode()) for m in body['messages']),(2048-512)*4-256)
         self.assertEqual(len(f.service.get(f.conv)['plans']),1)
