@@ -9,7 +9,8 @@ All notable user-visible changes are recorded here. The format follows
 ### Added
 - **Ollama on another machine:** `--ollama-url` (or `OPENDEVENGINE_OLLAMA_URL`) points
   discovery, `--model` and new Ollama profiles at another computer you own, such as a GPU
-  box on Tailscale. Its IP address is treated as local, including in local-only mode.
+  box on Tailscale. Its private-network IP is treated as local, including in local-only
+  mode; public IPs and host names are refused.
 - Open-source project files: contributing guide, security policy, code of conduct,
   third-party notices, issue and pull request templates, and CI for Python 3.10–3.13 on
   Linux and macOS plus UI tests and a package build check.

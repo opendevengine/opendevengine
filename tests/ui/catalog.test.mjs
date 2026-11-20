@@ -220,7 +220,7 @@ test('the profile form asks for embedding dimensions only with Embeddings, and i
  const embeddings = input(form, 'Embeddings'); embeddings.checked = true; embeddings.dispatchEvent({type: 'change', bubbles: true});
  assert.equal(dimensions.parentNode.hidden, false);
  const hint = form.querySelector('.field-hint');
- assert.match(hint.textContent, /^Loopback HTTP or HTTPS only/);
+ assert.match(hint.textContent, /^HTTP only to this computer or the --ollama-url machine; HTTPS anywhere else/);
  const adapter = input(form, 'Adapter'); adapter.value = 'claude_cli'; adapter.dispatchEvent({type: 'change', bubbles: true});
  assert.match(hint.textContent, /api\.anthropic\.com/);
  adapter.value = 'openai_compatible'; adapter.dispatchEvent({type: 'change', bubbles: true});

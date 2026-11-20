@@ -462,6 +462,10 @@ class ProviderService:
 
     def _enforce_policy(self, target, *, local_only, contains_source):
         remote = target['destination']['kind'] != 'local'
+        # Plain http is only ever valid to a local destination. A saved http profile whose host is no
+        # longer trusted (--ollama-url removed or changed) must not send source or secrets in clear text.
+        if remote and target['endpoint'].lower().startswith('http:'):
+            raise DestinationNotAllowed()
         if remote and (target['persisted_local_only'] or local_only):
             raise DestinationNotAllowed()
         if remote and contains_source and not target['config']['allow_external_source']:

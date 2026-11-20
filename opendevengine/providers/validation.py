@@ -84,6 +84,10 @@ def parse_ollama_url(value):
             raise ValueError('Use an IP address for Ollama, not a host name.') from None
         if address.is_unspecified or address.is_multicast:
             raise ValueError('Use the IP address of the machine running Ollama.')
+        if address.is_global:
+            # Trusted as local and reached over plain http, so it must be on a private network
+            # (LAN, VPN such as Tailscale's 100.64.0.0/10, or link-local), never the public internet.
+            raise ValueError('Use a private network address (LAN or VPN such as Tailscale), not a public IP.')
     netloc = f'[{host}]' if ':' in host else host
     if port is not None:
         netloc += f':{port}'

@@ -28,14 +28,17 @@ class ParseTests(unittest.TestCase):
         for value, expected in (('http://100.102.234.29:11434', 'http://100.102.234.29:11434'),
                                 ('HTTP://100.102.234.29:11434/', 'http://100.102.234.29:11434'),
                                 ('https://[fd7a:115c:a1e0::1]:11434', 'https://[fd7a:115c:a1e0::1]:11434'),
-                                ('http://localhost:11434', 'http://localhost:11434')):
+                                ('http://localhost:11434', 'http://localhost:11434'),
+                                ('http://192.168.1.10:11434', 'http://192.168.1.10:11434'),
+                                ('http://10.0.0.5:11434', 'http://10.0.0.5:11434')):
             with self.subTest(value=value):
                 self.assertEqual(expected, parse_ollama_url(value))
 
     def test_rejects_names_paths_credentials_and_wildcards(self):
         for value in ('http://ryzen-ai:11434', 'http://ollama.example.com', 'http://100.102.234.29:11434/api',
                       'http://u:p@100.102.234.29:11434', 'http://100.102.234.29:11434?x=1', 'ftp://100.102.234.29',
-                      'http://0.0.0.0:11434', 'http://224.0.0.1:11434', ' http://100.102.234.29:11434', '', None):
+                      'http://0.0.0.0:11434', 'http://224.0.0.1:11434', ' http://100.102.234.29:11434', '', None,
+                      'http://8.8.8.8:11434', 'https://[2606:4700::1111]:11434'):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 parse_ollama_url(value)
 
@@ -90,12 +93,13 @@ class LocalOnlyTests(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         self.store = Store.open(directory.name)
         self.addCleanup(self.store.close)
+        self.transport = FakeTransport()
         self.service = ProviderService(self.store, SecretService(self.store, MemoryVault()),
-                                       transport=FakeTransport(), clock=lambda: 100000)
+                                       transport=self.transport, clock=lambda: 100000)
 
-    def spec(self, endpoint):
+    def spec(self, endpoint, **config):
         return {'name': 'tailnet', 'adapter': 'ollama', 'endpoint': endpoint, 'model': 'synthetic',
-                'config': {'capabilities': ['chat', 'structured_output']}}
+                'config': {'capabilities': ['chat', 'structured_output'], **config}}
 
     def test_configured_host_is_usable_in_local_only_mode(self):
         self.assertTrue(self.service.settings()['local_only'])
@@ -111,6 +115,19 @@ class LocalOnlyTests(unittest.TestCase):
         with patch.dict('os.environ', {}, clear=True):
             self.assertEqual('remote', self.service.roles()['ask']['destination']['kind'])
             self.assertEqual('blocked', self.service.roles()['ask']['status'])
+
+    def test_untrusted_http_profile_never_sends_even_with_sharing_allowed(self):
+        with configured(TAILNET):
+            profile = self.service.create_profile(self.spec(TAILNET, allow_external_source=True))
+            self.service.assign_role('ask', profile['id'])
+        with patch.dict('os.environ', {}, clear=True):
+            self.service.update_settings(local_only=False)
+            for call in (lambda: self.service.generate('ask', [{'role': 'user', 'content': 'synthetic source'}]),
+                         lambda: self.service.test_profile(profile['active_version_id'])):
+                with self.assertRaises(ProviderError) as caught:
+                    call()
+                self.assertEqual('destination_not_allowed', caught.exception.code)
+        self.assertEqual([], self.transport.requests)
 
 
 class CommandLineTests(unittest.TestCase):
