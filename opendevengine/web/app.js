@@ -648,7 +648,9 @@ function modelCard(data, health) {
   const model = typeof answer.model === "string" ? answer.model : "unknown model";
   const destination = answer.destination === "loopback"
     ? "Destination: loopback — prompts go to Ollama on this computer."
-    : "Destination unknown.";
+    : answer.destination === "configured_host"
+      ? "Destination: the Ollama machine set with --ollama-url — prompts and source go there."
+      : "Destination unknown.";
   const probed = field(health, "components", "model", "probed") === false
     ? "Not checked yet: OpenDevEngine does not contact the model until you ask a question." : null;
   return card("Answer model", status, `${adapter} model ${model}.`, destination, probed);
@@ -1147,7 +1149,7 @@ function renderProviderEditor(profile = null) {
   // The hint follows the adapter so people only read the rule that applies to them.
   const hint = node("p", "", "field-hint"); endpoint.parentNode.append(hint);
   const showHint = () => { hint.textContent = adapter.value === "claude_cli" ? "Claude Code CLI uses https://api.anthropic.com, a model alias such as sonnet, and no credential."
-    : `${adapter.value === "openai_compatible" ? "Use the /v1 base. " : ""}Loopback HTTP or HTTPS only. Requests go to this destination; redirects are rejected.`; };
+    : `${adapter.value === "openai_compatible" ? "Use the /v1 base. " : ""}HTTP only to this computer or the --ollama-url machine; HTTPS anywhere else. Requests go to this destination; redirects are rejected.`; };
   adapter.addEventListener("change", showHint); showHint();
   const model = control(form, "Model identifier", version?.model || ""); model.required = true;
   const secret = control(form, profile ? "New credential (leave blank to retain current credential)" : "Credential (optional for local Ollama)", "", "password");

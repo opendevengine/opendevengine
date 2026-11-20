@@ -42,7 +42,8 @@ class DiscoveryTests(TestCase):
 
     def test_discovery_unreachable_is_not_an_exception(self):
         out = discover_ollama(transport=FakeTransport(raise_connection=True))
-        self.assertEqual(out, {'reachable': False, 'models': [], 'error_code': 'provider_unreachable'})
+        self.assertEqual(out, {'reachable': False, 'base_url': 'http://127.0.0.1:11434', 'models': [],
+                               'error_code': 'provider_unreachable'})
 
     def test_discovery_rejects_non_loopback(self):
         for url in ('http://example.com:11434', 'https://10.0.0.5:11434', 'file:///etc/passwd'):

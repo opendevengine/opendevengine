@@ -29,7 +29,7 @@
 <h2 id="providers">Supported providers</h2>
 <dl>
 <dt>Ollama</dt>
-<dd>Local chat and embedding models, with automatic local discovery.</dd>
+<dd>Chat and embedding models on this computer or <a href="#other-machine">another machine you own</a>, with automatic discovery.</dd>
 <dt>OpenAI-compatible endpoints</dt>
 <dd>Local servers such as LM Studio, vLLM or llama.cpp, and hosted APIs with compatible capabilities.</dd>
 <dt>Claude Code CLI</dt>
@@ -40,7 +40,13 @@
 <p>Starting with an existing downloaded Ollama model:</p>
 <pre tabindex="0" aria-label="Command example"><code>opendevengine --model llama3.1:8b --data-dir ./workspace-data</code>
 </pre>
-<p><code>--model</code> seeds only unassigned Ask and planning roles; it does not overwrite existing assignments or select the coding agent’s model. The default Ollama loopback port is <code>11434</code>; change it with <code>--ollama-port</code>.</p>
+<p><code>--model</code> seeds only unassigned Ask and planning roles; it does not overwrite existing assignments or select the coding agent’s model. Ollama is expected at <code>http://127.0.0.1:11434</code>; change it with <code>--ollama-url</code>.</p>
+<h2 id="other-machine">Ollama on another machine</h2>
+<p>To use Ollama on another computer you control, such as a GPU machine on your Tailscale network or LAN, give its address:</p>
+<pre tabindex="0" aria-label="Command example"><code>opendevengine --ollama-url http://100.64.0.2:11434 --model llama3.1:8b --data-dir ./workspace-data</code>
+</pre>
+<p>That one IP address is then treated as local: plain <code>http</code> is allowed to it, discovery lists its models, and it stays usable while <strong>Keep everything on this computer</strong> is on, so repository source is sent to it. Only set it for a machine you trust as much as this one, and reach it over a private network; Ollama has no login of its own. The address must be a private-network IP (LAN, or a VPN such as Tailscale), not a host name or public IP, so DNS cannot redirect it and plain http never crosses the internet. Removing the setting makes saved profiles for that address remote again: local-only mode blocks them, and their plain-http endpoints are refused even with local-only mode off.</p>
+<p>On the Ollama machine, make Ollama listen on that address (for example <code>OLLAMA_HOST=100.64.0.2:11434</code>) rather than on every interface.</p>
 <h2 id="privacy">Enable remote inference deliberately</h2>
 <p><strong>Keep everything on this computer</strong> is on by default. Remote providers require turning it off and explicitly allowing the profile to receive source. Remote embeddings also transmit source. Credentials go into the OS vault. Local storage alone does not imply local inference.</p>
 <h2 id="timeouts">Timeouts and local hardware</h2>

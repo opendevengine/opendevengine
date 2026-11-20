@@ -66,6 +66,17 @@ test("choosing a discovered embedding model creates a profile with probed dimens
   assert.deepEqual(calls.filter(([m]) => m === "PATCH").at(-1), ["PATCH", "/api/settings/model-roles", { assignments: { embedding: "prof_2" } }]);
 });
 
+test("a configured Ollama on another machine is named, and its models are set up at that address", async () => {
+  const { host, calls } = await setup({ discover: { ...DISCOVERED, base_url: "http://100.102.234.29:11434" } });
+  assert.match(visibleText(host), /Runs models on 100\.102\.234\.29:11434\./);
+  const sel = select(host, "Smarter code search");
+  sel.value = "m:nomic-embed-text:latest";
+  sel.dispatchEvent({ type: "change", bubbles: true });
+  await settle(20);
+  const post = calls.find(([m, p]) => m === "POST" && p === "/api/provider-profiles");
+  assert.equal(post[2].endpoint, "http://100.102.234.29:11434");
+});
+
 test("choosing a discovered chat model uses the 600s local timeout, context length and 1024 output tokens", async () => {
   const { host, calls } = await setup();
   const sel = select(host, "Writing plans");

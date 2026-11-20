@@ -5,6 +5,7 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import socketserver
 import json
+import os
 from pathlib import Path
 import re
 import signal
@@ -22,6 +23,7 @@ from .platform.workspace import apply_github_status, build_workspace_summary, bu
 from .api import error_status
 from .services import ApplicationServices
 from .platform.keyring_backend import OSKeyringBackend
+from .providers.validation import OLLAMA_URL_ENV, ollama_url, parse_ollama_url
 
 
 ROOT = Path(__file__).resolve().parent
@@ -273,14 +275,23 @@ def main():
     parser.add_argument("--repo", metavar="NAME=PATH", action="append", default=[],
                         help="Index HEAD of a local Git checkout. Repeat to add repositories.")
     parser.add_argument("--model", metavar="NAME", help="Seed unassigned Ask/planning roles with this local Ollama model.")
-    parser.add_argument("--ollama-port", type=int, default=11434, help="Loopback port for Ollama.")
+    parser.add_argument("--ollama-url", metavar="URL",
+                        help=f"Ollama address, e.g. http://100.64.0.2:11434 for another machine you own. Its IP is "
+                             f"treated as local. Default: ${OLLAMA_URL_ENV} or http://127.0.0.1:11434.")
     parser.add_argument("--data-dir", type=Path, help="Persist workspace metadata in this directory; omitted uses memory.")
     parser.add_argument("--port", type=int, default=8765, help="Loopback port for the web app.")
     args = parser.parse_args()
     if len(args.repo) > MAX_REPOS:
         parser.error(f"Up to {MAX_REPOS} repositories are supported.")
-    if not (1 <= args.port <= 65535 and 1 <= args.ollama_port <= 65535):
+    if not 1 <= args.port <= 65535:
         parser.error("Ports must be between 1 and 65535.")
+    if args.ollama_url is not None:
+        os.environ[OLLAMA_URL_ENV] = args.ollama_url
+    if os.environ.get(OLLAMA_URL_ENV):
+        try:
+            parse_ollama_url(os.environ[OLLAMA_URL_ENV])
+        except ValueError as error:
+            parser.error(f"Invalid Ollama address (--ollama-url / {OLLAMA_URL_ENV}): {error}")
 
     snapshots = []
     local_roots = {}
@@ -303,7 +314,7 @@ def main():
         snapshots = load_demos(ROOT / "examples")
 
     index = CodeIndex([])
-    model = Ollama(args.model, args.ollama_port) if args.model else None
+    model = Ollama(args.model, ollama_url()) if args.model else None
     try:
         platform = Platform.open(args.data_dir.expanduser() if args.data_dir else None,
                                  secret_backend=OSKeyringBackend() if args.data_dir else None)
@@ -327,7 +338,7 @@ def main():
                 if missing_roles:
                     profile = services.providers.create_profile({
                         'name': 'CLI local Ollama', 'adapter': 'ollama',
-                        'endpoint': f'http://127.0.0.1:{args.ollama_port}', 'model': args.model,
+                        'endpoint': ollama_url(), 'model': args.model,
                         'config': {'capabilities': ['chat','structured_output'], 'timeout_seconds': 600}})
                     for role in missing_roles:
                         services.providers.assign_role(role, profile['id'])

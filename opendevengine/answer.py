@@ -4,7 +4,10 @@ import http.client
 import json
 import re
 from urllib.error import HTTPError
+from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
+
+from .providers.validation import is_loopback_host
 
 
 SYSTEM_PROMPT = """You answer engineering questions using only the supplied source excerpts.
@@ -63,9 +66,11 @@ class NoRedirect(HTTPRedirectHandler):
 
 
 class Ollama:
-    def __init__(self, model, port):
+    def __init__(self, model, base_url):
         self.model = model
-        self.url = f"http://127.0.0.1:{port}/api/chat"
+        self.url = f"{base_url}/api/chat"
+        # A configured --ollama-url host is trusted as local but is not this computer.
+        self.destination = 'loopback' if is_loopback_host(urlsplit(base_url).hostname or '') else 'configured_host'
         self.opener = build_opener(ProxyHandler({}), NoRedirect())
 
     def answer(self, question, previous, evidence):

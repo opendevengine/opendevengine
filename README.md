@@ -82,7 +82,8 @@ On the Repositories page, two switches are independent per repository:
 
 Settings → Models. Supported providers:
 
-- **Ollama** on this computer (detected automatically)
+- **Ollama** on this computer (detected automatically), or on another machine you own with
+  `--ollama-url http://<ip>:11434`; that IP is then treated as local
 - **OpenAI-compatible servers** such as LM Studio, vLLM or llama.cpp, or hosted APIs
 - **Claude Code CLI**, using your own Claude subscription login
 

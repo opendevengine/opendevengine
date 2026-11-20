@@ -80,6 +80,25 @@ test("Use these assigns the found chat model to answering and planning and the e
   assert.ok(host.querySelectorAll("a").find((a) => a.getAttribute("href") === "#/settings/models" && a.textContent === "Choose…"));
 });
 
+test("an Ollama on another machine is named in the intro, when found, when empty and when unreachable", async () => {
+  const base = "http://100.102.234.29:11434";
+  const indexed = [repo("gh:1", "storefront-app", { index_enabled: true })];
+  const found = await setup({ repos: indexed, discover: { reachable: true, base_url: base, models: [{ name: "llama3.2:latest", embedding: false }] } });
+  assert.match(visibleText(found.host), /Everything stays on this computer and your Ollama machine \(100\.102\.234\.29:11434\)\./);
+  assert.match(visibleText(found.host), /Found Ollama on 100\.102\.234\.29:11434 with llama3\.2:latest\. Use them\?/);
+  btn(found.host, "Use these").click();
+  await settle(30);
+  assert.equal(found.calls.find(([m, p]) => m === "POST" && p === "/api/provider-profiles")[2].endpoint, base);
+  const empty = await setup({ repos: indexed, discover: { reachable: true, base_url: base, models: [] } });
+  assert.match(visibleText(empty.host), /Ollama on 100\.102\.234\.29:11434 has no models yet\./);
+  const down = await setup({ repos: indexed, discover: { reachable: false, base_url: base, models: [] } });
+  assert.match(visibleText(down.host), /Can't reach Ollama on 100\.102\.234\.29:11434\./);
+  assert.doesNotMatch(visibleText(down.host), /No local Ollama models found/);
+  const local = await setup({ repos: indexed, discover: { reachable: false, base_url: "http://127.0.0.1:11434", models: [] } });
+  assert.match(visibleText(local.host), /Everything stays on this computer\. About 3 minutes\./);
+  assert.match(visibleText(local.host), /No local Ollama models found\./);
+});
+
 test("without GitHub the first step starts the manifest flow", async () => {
   const { host, submitted } = await setup({ connected: false, repos: [] });
   assert.match(visibleText(host), /Connect GitHub first; your repositories appear here\./);
