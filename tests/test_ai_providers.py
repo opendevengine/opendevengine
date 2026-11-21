@@ -1,0 +1,244 @@
+"""AI providers façade: providers by kind, one choice per job, a managed coding profile."""
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+from opendevengine.execution.profiles import ExecutionProfileService
+from opendevengine.platform import Platform, Worker
+from opendevengine.platform.secrets import SecretService
+from opendevengine.providers import ProviderService
+from opendevengine.providers import validation
+from opendevengine.providers.catalog import AIProviderError, AIProviders
+from test_providers_service import FakeTransport, MemoryVault
+
+KEY = 'sk-ant-private-fixture-key'
+
+
+class AIProvidersTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.platform = Platform.open(Path(self.temp.name))
+        self.addCleanup(self.platform.close)
+        self.addCleanup(validation.set_trusted_hosts, [])
+        self.vault = MemoryVault()
+        self.secrets = SecretService(self.platform.store, self.vault)
+        self.providers = ProviderService(self.platform.store, self.secrets, transport=FakeTransport())
+        self.profiles = ExecutionProfileService(self.platform, self.providers)
+        self.catalog = AIProviders(self.platform.store, self.secrets, self.providers, self.profiles)
+
+    def code(self, expected, call):
+        with self.assertRaises(AIProviderError) as caught:
+            call()
+        self.assertEqual(caught.exception.code, expected)
+
+    def claude(self, **kw):
+        return self.catalog.add('claude', api_key=KEY, consent=True, **kw)
+
+    def local(self, endpoint='http://100.64.0.9:11434'):
+        return self.catalog.add('local', endpoint=endpoint, adapter='ollama')
+
+    def managed(self):
+        with self.platform.store.read() as db:
+            return db.execute('SELECT * FROM execution_profiles WHERE managed=1 AND deleted_at IS NULL').fetchall()
+
+    def pass_coding_test(self):
+        Worker(self.platform.jobs, {'execution.test': lambda *_: {}}, worker_id='fixture').run_once()
+        with self.platform.store.transaction() as db:
+            db.execute("UPDATE execution_profile_checks SET status='passed',result_json=? ",
+                       (json.dumps({'image_id': 'sha256:' + 'a' * 64, 'capabilities': {}}),))
+
+    def test_remote_provider_requires_consent(self):
+        self.code('consent_required', lambda: self.catalog.add('claude', api_key=KEY))
+        self.code('consent_required', lambda: self.catalog.add('codex', api_key=KEY, consent=False))
+        self.assertEqual(self.catalog.list(), [])
+        self.assertTrue(self.providers.settings()['local_only'])
+        self.claude()
+        self.assertIs(self.providers.settings()['local_only'], False)
+
+    def test_key_never_returned(self):
+        provider = self.claude()
+        self.catalog.choose('plans', provider['id'], 'claude-sonnet-5-5')
+        self.catalog.choose('coding', provider['id'], 'sonnet')
+        with self.platform.store.read() as db:
+            stored = json.dumps([list(r) for t in ('jobs', 'ai_providers', 'execution_profile_versions',
+                                                    'provider_profile_versions')
+                                 for r in db.execute('SELECT * FROM ' + t)])
+        public = json.dumps([provider, self.catalog.list(), self.catalog.jobs(),
+                             self.providers.list_profiles(), self.profiles.list_profiles()])
+        self.assertNotIn(KEY, stored + public)
+        self.assertIs(self.catalog.list()[0]['has_key'], True)
+
+    def test_local_provider_is_trusted(self):
+        provider = self.local()
+        self.assertTrue(self.providers.settings()['local_only'])  # no consent needed or asked
+        self.catalog.choose('plans', provider['id'], 'qwen3:8b')
+        role = self.providers.roles()['planning']
+        self.assertEqual((role['destination']['kind'], role['model']), ('local', 'qwen3:8b'))
+
+    def test_remove_local_keeps_shared_host(self):
+        first, second = self.local(), self.local('http://100.64.0.9:1234')
+        self.catalog.remove(first['id'])
+        self.assertEqual(validation.destination_for('http://100.64.0.9:1/v1')['kind'], 'local')
+        self.catalog.remove(second['id'])
+        self.assertEqual(validation.destination_for('http://100.64.0.9:1/v1')['kind'], 'remote')
+
+    def test_trust_survives_restart(self):
+        self.local()
+        validation.set_trusted_hosts([])
+        AIProviders(self.platform.store, self.secrets, self.providers, self.profiles).refresh_trust()
+        self.assertEqual(validation.destination_for('http://100.64.0.9:1/v1')['kind'], 'local')
+
+    def test_plans_sets_ask_planning_summary(self):
+        provider = self.local()
+        self.catalog.choose('plans', provider['id'], 'qwen3:8b')
+        roles = self.providers.roles()
+        self.assertEqual(len({roles[r]['profile_id'] for r in ('ask', 'planning', 'summary')}), 1)
+        self.assertEqual(self.catalog.jobs()['plans']['model'], 'qwen3:8b')
+
+    def test_summary_choice_survives_plans_change(self):
+        provider = self.local()
+        self.catalog.choose('summary', provider['id'], 'qwen3:4b')
+        self.catalog.choose('plans', provider['id'], 'qwen3:8b')
+        roles = self.providers.roles()
+        self.assertEqual((roles['summary']['model'], roles['planning']['model']), ('qwen3:4b', 'qwen3:8b'))
+
+    def test_same_model_reuses_profile(self):
+        provider = self.local()
+        self.catalog.choose('plans', provider['id'], 'qwen3:8b')
+        self.catalog.choose('summary', provider['id'], 'qwen3:8b')
+        self.assertEqual(len(self.providers.list_profiles()), 1)
+
+    def test_coding_creates_managed_profile_and_tests(self):
+        provider = self.claude()
+        jobs = self.catalog.choose('coding', provider['id'], 'sonnet')
+        self.assertEqual(jobs['coding']['status'], 'queued')
+        rows = self.managed()
+        self.assertEqual(len(rows), 1)
+        version = self.profiles.get(rows[0]['id'])['version']
+        self.assertEqual((version['auth_mode'], version['config']['agent_model'], version['config']['image']),
+                         ('api_key', 'sonnet', 'python:3.12-slim'))
+        self.assertIs(version['config']['allow_external_source'], True)
+        self.assertIsNone(self.profiles.default_profile_id())
+        self.pass_coding_test()
+        self.assertEqual(self.profiles.default_profile_id(), rows[0]['id'])
+        self.assertEqual(self.catalog.jobs()['coding']['status'], 'passed')
+        self.assertEqual(self.profiles.version_api_key(version['id']), KEY)
+
+    def test_coding_with_login_uses_cli_login(self):
+        provider = self.catalog.add('claude', use_login=True, consent=True)
+        self.catalog.choose('coding', provider['id'], 'opus')
+        version = self.profiles.get(self.managed()[0]['id'])['version']
+        self.assertEqual((version['auth_mode'], version['has_secret']), ('cli_login', False))
+
+    def test_coding_model_change_versions_the_same_profile(self):
+        provider = self.claude()
+        self.catalog.choose('coding', provider['id'], 'sonnet')
+        self.catalog.choose('coding', provider['id'], 'opus')
+        rows = self.managed()
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(self.profiles.get(rows[0]['id'])['version']['config']['agent_model'], 'opus')
+
+    def test_coding_rejects_codex_and_local(self):
+        codex = self.catalog.add('codex', api_key=KEY, consent=True)
+        self.code('coding_unsupported', lambda: self.catalog.choose('coding', codex['id'], 'gpt-5-codex'))
+        self.code('coding_unsupported', lambda: self.catalog.choose('coding', self.local()['id'], 'qwen3:8b'))
+        self.assertEqual(self.managed(), [])
+
+    def test_claude_needs_exactly_one_credential(self):
+        self.code('validation', lambda: self.catalog.add('claude', consent=True))
+        self.code('validation', lambda: self.catalog.add('claude', api_key=KEY, use_login=True, consent=True))
+        self.code('validation', lambda: self.catalog.add('codex', consent=True))
+        self.code('validation', lambda: self.catalog.add('local'))
+
+    def test_rotate_key_updates_chat_and_coding(self):
+        provider = self.claude()
+        self.catalog.choose('plans', provider['id'], 'claude-sonnet-5-5')
+        self.catalog.choose('coding', provider['id'], 'sonnet')
+        chat_before = self.providers.roles()['planning']['version_id']
+        coding_before = self.profiles.get(self.managed()[0]['id'])['active_version_id']
+        self.catalog.update(provider['id'], api_key='sk-ant-rotated')
+        chat_after = self.providers.roles()['planning']['version_id']
+        coding_after = self.profiles.get(self.managed()[0]['id'])['active_version_id']
+        self.assertNotEqual(chat_before, chat_after)
+        self.assertNotEqual(coding_before, coding_after)
+        self.assertEqual(self.profiles.version_api_key(coding_after), 'sk-ant-rotated')
+        self.assertEqual(self.catalog.jobs()['coding']['status'], 'queued')
+        with self.assertRaises(Exception):
+            self.profiles.version_api_key(coding_before)  # old ref revoked
+        self.assertNotIn(KEY.encode(), list(self.vault.values.values()))
+
+    def test_remove_provider_clears_jobs(self):
+        provider = self.claude()
+        self.catalog.choose('plans', provider['id'], 'claude-sonnet-5-5')
+        self.catalog.choose('coding', provider['id'], 'sonnet')
+        self.catalog.remove(provider['id'])
+        jobs = self.catalog.jobs()
+        self.assertEqual((jobs['coding']['status'], jobs['plans']['status']), ('unassigned', 'unassigned'))
+        self.assertEqual(self.managed(), [])
+        self.assertIsNone(self.profiles.default_profile_id())
+        self.assertEqual(self.providers.list_profiles(), [])
+        self.assertEqual(self.catalog.list(), [])
+        self.assertEqual(self.vault.values, {})
+        self.code('not_found', lambda: self.catalog.remove(provider['id']))
+
+    def test_privacy_back_on_blocks_remote_jobs(self):
+        provider = self.claude()
+        self.catalog.choose('plans', provider['id'], 'claude-sonnet-5-5')
+        self.catalog.choose('coding', provider['id'], 'sonnet')
+        self.providers.update_settings(local_only=True)
+        jobs = self.catalog.jobs()
+        self.assertEqual((jobs['plans']['status'], jobs['coding']['status']), ('blocked', 'blocked'))
+
+    def test_codex_chat_profile_targets_openai(self):
+        codex = self.catalog.add('codex', api_key=KEY, consent=True)
+        self.catalog.choose('plans', codex['id'], 'gpt-5-codex')
+        version = self.providers.get_version(self.providers.roles()['planning']['version_id'])
+        self.assertEqual((version['adapter'], version['endpoint']), ('openai_compatible', 'https://api.openai.com/v1'))
+
+    def test_search_requires_ollama_and_probes_dimensions(self):
+        from test_providers_service import response
+        self.providers.transport.queue.append(response({'embeddings': [[0.1, 0.2, 0.3]]}))
+        provider = self.local()
+        self.catalog.choose('search', provider['id'], 'nomic-embed-text')
+        version = self.providers.get_version(self.providers.roles()['embedding']['version_id'])
+        self.assertEqual((version['config']['capabilities'], version['config']['embedding_dimensions']), (['embeddings'], 3))
+        codex = self.catalog.add('codex', api_key=KEY, consent=True)
+        self.code('search_unsupported', lambda: self.catalog.choose('search', codex['id'], 'text-embedding-3-small'))
+
+
+class AIProvidersAPITests(unittest.TestCase):
+    def setUp(self):
+        from opendevengine.services import ApplicationServices
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.platform = Platform.open(Path(self.temp.name))
+        self.addCleanup(self.platform.close)
+        self.addCleanup(validation.set_trusted_hosts, [])
+        self.services = ApplicationServices(self.platform, provider_transport=FakeTransport())
+
+    def call(self, method, path, body=None):
+        return self.services.api.dispatch(method, path, body=body)
+
+    def test_routes_round_trip(self):
+        created = self.call('POST', '/api/ai-providers', {'kind': 'local', 'endpoint': 'http://127.0.0.1:11434',
+                                                          'adapter': 'ollama'})
+        self.assertEqual(created.status, 201)
+        pid = created.body['id']
+        self.assertEqual([p['id'] for p in self.call('GET', '/api/ai-providers').body['providers']], [pid])
+        chosen = self.call('PUT', '/api/ai-jobs/plans', {'provider_id': pid, 'model': 'qwen3:8b'})
+        self.assertEqual(chosen.body['plans']['model'], 'qwen3:8b')
+        self.assertEqual(self.call('GET', '/api/ai-jobs').body['plans']['provider_id'], pid)
+        self.call('PUT', '/api/ai-jobs/plans', {'provider_id': None})
+        self.assertEqual(self.call('GET', '/api/ai-jobs').body['plans']['status'], 'unassigned')
+        self.assertEqual(self.call('DELETE', '/api/ai-providers/' + pid).status, 200)
+
+    def test_consent_error_has_code(self):
+        with self.assertRaises(AIProviderError) as caught:
+            self.call('POST', '/api/ai-providers', {'kind': 'codex', 'api_key': KEY})
+        self.assertEqual((caught.exception.code, caught.exception.http_status), ('consent_required', 400))
+
+
+if __name__ == '__main__':
+    unittest.main()

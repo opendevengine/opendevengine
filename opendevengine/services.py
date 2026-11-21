@@ -38,6 +38,8 @@ class ApplicationServices:
         self.public_base_url = public_base_url
         self.github = GitHubService(platform.store, platform.jobs, platform.secrets, transport=github_transport)
         self.providers = ProviderService(platform.store, platform.secrets, transport=provider_transport)
+        from .providers.catalog import AIProviders
+        self.ai_providers = AIProviders(platform.store, platform.secrets, self.providers)
         self.indexing = self.routing = self.plans = self.conversations = None
         self.execution_profiles = self.sessions = self.publications = None
         self.scheduler = None
@@ -46,7 +48,8 @@ class ApplicationServices:
         self.context_sources = {}
         self.context_lock = RLock()
         self.demo_loader = self._bundled_demos
-        self.api = FeatureAPI(platform, self.github, self.providers, public_base_url=public_base_url)
+        self.api = FeatureAPI(platform, self.github, self.providers, ai_providers=self.ai_providers,
+                              public_base_url=public_base_url)
         self.stop_event = Event()
         self.thread = None
         self.error_code = None
@@ -64,7 +67,7 @@ class ApplicationServices:
                               conversations=self.conversations, purge_context=self.purge_context,
                               select_context=self.select_context,
                               execution_profiles=self.execution_profiles, sessions=self.sessions,
-                              publications=self.publications,
+                              publications=self.publications, ai_providers=self.ai_providers,
                               public_base_url=self.public_base_url)
 
     def enable_context(self, indexing):
@@ -105,6 +108,7 @@ class ApplicationServices:
             sessions = SessionService(self.platform, self.indexing, self.github, self.providers,
                                       self.plans, execution_profiles, data_dir=data_dir)
         self.execution_profiles, self.sessions = execution_profiles, sessions
+        self.ai_providers.execution_profiles = execution_profiles
         # Plan readiness asks the session service whether a saved version could launch now.
         if getattr(self.plans, 'execution_preflight', False) is None and callable(getattr(sessions, 'preflight', None)):
             self.plans.execution_preflight = sessions.preflight

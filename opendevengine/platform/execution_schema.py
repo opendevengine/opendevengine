@@ -37,7 +37,8 @@ EXECUTION_V16_SQL = (
     "ALTER TABLE execution_profiles ADD COLUMN managed INTEGER NOT NULL DEFAULT 0 CHECK(managed IN (0,1))",
     """CREATE TABLE ai_providers (
       id TEXT PRIMARY KEY,kind TEXT NOT NULL CHECK(kind IN ('claude','codex','local')),
-      name TEXT NOT NULL,endpoint TEXT,auth TEXT NOT NULL CHECK(auth IN ('api_key','cli_login','none')),
+      name TEXT NOT NULL,endpoint TEXT,adapter TEXT CHECK(adapter IN ('ollama','openai_compatible')),
+      auth TEXT NOT NULL CHECK(auth IN ('api_key','cli_login','none')),
       secret_ref TEXT REFERENCES secret_refs(id),created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)""",
     """CREATE TABLE ai_provider_profiles (
       provider_id TEXT NOT NULL REFERENCES ai_providers(id),
