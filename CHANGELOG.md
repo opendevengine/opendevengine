@@ -6,6 +6,12 @@ All notable user-visible changes are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- **Validation checks need your approval:** a check runs only if you ticked "Run this check"
+  in the plan. Checks from the model start unapproved; unapproved checks are skipped and
+  shown as skipped, and a session with skipped checks is never published automatically.
+  Saved plans need a new version with checks approved. (#9)
+
 ## [0.1.0] — 2026-11-21, first public preview
 
 ### Added
