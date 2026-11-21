@@ -433,10 +433,10 @@ class FakeProfiles:
         """Write the frozen schema-9 rows the real producer owns (FK targets for sessions)."""
         import json as _json
         with self.store.transaction() as db:
-            db.execute("INSERT OR IGNORE INTO execution_profiles VALUES ('prof_1','synthetic',?,NULL,1,1)", (self.active,))
+            db.execute("INSERT OR IGNORE INTO execution_profiles(id,name,active_version_id,deleted_at,created_at,updated_at) VALUES ('prof_1','synthetic',?,NULL,1,1)", (self.active,))
             db.execute('UPDATE execution_profiles SET active_version_id=? WHERE id=?', (self.active, 'prof_1'))
             for ident, version in self.versions.items():
-                db.execute("INSERT OR IGNORE INTO execution_profile_versions VALUES (?,'prof_1',?,'claude_code','cli_login',?,1)",
+                db.execute("INSERT OR IGNORE INTO execution_profile_versions(id,profile_id,version,adapter,auth_mode,config_json,created_at) VALUES (?,'prof_1',?,'claude_code','cli_login',?,1)",
                            (ident, version['version'], _json.dumps(version['config'])))
                 db.execute("INSERT OR IGNORE INTO execution_profile_checks VALUES (?,NULL,'passed',?,NULL,1)",
                            (ident, _json.dumps(version['check'])))

@@ -13,10 +13,10 @@ class DefaultProfileTests(unittest.TestCase):
     tearDown = ask_fixtures.AskTests.tearDown
     work = ask_fixtures.AskTests.work
 
-    def checked_profile(self, status):
+    def checked_profile(self, status, managed=False):
         p = self.profiles.create({'name': 'Coding ' + str(len(self.profiles.list_profiles()['items'])), 'adapter': 'claude_code',
                                  'auth_mode': 'cli_login', 'image': 'local:cached',
-                                 'allow_external_source': True})
+                                 'allow_external_source': True}, managed=managed)
         job = self.jobs.enqueue('fixture.check', {})
         Worker(self.jobs, {'fixture.check': lambda *_: {}}, worker_id='check').run_once()
         with self.store.transaction() as db:
@@ -68,6 +68,22 @@ class DefaultProfileTests(unittest.TestCase):
         second = self.checked_profile('passed')
         self.assertEqual(self.profiles.default_profile_id(), second['id'])
         self.profiles.delete(second['id'])
+        self.assertIsNone(self.profiles.default_profile_id())
+
+    def test_managed_profile_wins_default(self):
+        self.providers.update_settings(local_only=False)
+        self.profiles = ExecutionProfileService(SimpleNamespace(store=self.store, jobs=self.jobs), self.providers)
+        self.checked_profile('passed')
+        managed = self.checked_profile('passed', managed=True)
+        self.assertEqual(self.profiles.default_profile_id(), managed['id'])
+        self.profiles.update(managed['id'], {'image': 'different:cached'})
+        self.assertIsNone(self.profiles.default_profile_id())
+
+    def test_default_rule_unchanged_without_managed(self):
+        self.providers.update_settings(local_only=False)
+        self.profiles = ExecutionProfileService(SimpleNamespace(store=self.store, jobs=self.jobs), self.providers)
+        self.checked_profile('passed')
+        self.checked_profile('passed')
         self.assertIsNone(self.profiles.default_profile_id())
 
     def test_composition_sets_only_unset_callbacks(self):
