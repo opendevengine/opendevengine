@@ -141,6 +141,22 @@ class FeatureHTTPTests(unittest.TestCase):
         self.assertEqual(self.github.calls, [])
         self.assertEqual(self.request('POST','/api/github/configure',args)[0],201)
 
+    def test_ai_job_choice_and_consent_errors_travel_over_http(self):
+        class Catalog:
+            def __init__(self): self.calls = []
+            def choose(self, job, provider_id, model=None):
+                self.calls.append((job, provider_id, model)); return {'plans': {'provider_id': provider_id}}
+            def add(self, kind, **kw):
+                from opendevengine.providers.catalog import AIProviderError
+                raise AIProviderError('consent_required')
+        catalog = Catalog()
+        self.server.features = FeatureAPI(self.server.platform, self.github, self.providers, ai_providers=catalog)
+        status, body, _ = self.request('PATCH', '/api/ai-jobs/plans', {'provider_id': 'p', 'model': 'qwen3:8b'})
+        self.assertEqual((status, catalog.calls), (200, [('plans', 'p', 'qwen3:8b')]))
+        status, body, _ = self.request('POST', '/api/ai-providers', {'kind': 'codex', 'api_key': 'sk-private'})
+        self.assertEqual((status, body['code']), (400, 'consent_required'))
+        self.assertNotIn('sk-private', json.dumps(body))
+
     def test_domain_errors_keep_stable_code_without_private_message(self):
         status, body, _ = self.request('POST','/api/provider-profiles', dict(name='bad',adapter='ollama',endpoint='http://127.0.0.1',model='test'))
         self.assertEqual(status,400)

@@ -170,7 +170,7 @@ export function createProvidersSection({ request, advanced = () => ({}), pollMs 
   async function choose(job, providerId, model) {
     message.textContent = "";
     try {
-      jobs = await request(`/api/ai-jobs/${job}`, "PUT", providerId ? { provider_id: providerId, model } : { provider_id: null });
+      jobs = await request(`/api/ai-jobs/${job}`, "PATCH", providerId ? { provider_id: providerId, model } : { provider_id: null });
       renderJobs();
       if (providerId && job !== "coding" && model) {
         jobs = await request(`/api/ai-jobs/${job}/test`, "POST");

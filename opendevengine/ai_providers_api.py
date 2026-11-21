@@ -38,7 +38,7 @@ class AIProvidersAPI:
         if match and match[2] and method == 'POST':
             fields(body, set())
             return APIResponse(200, self.catalog.test_job(match[1]))
-        if match and not match[2] and method == 'PUT':
+        if match and not match[2] and method == 'PATCH':
             data = fields(body, {'provider_id', 'model'}, {'provider_id'})
             return APIResponse(200, self.catalog.choose(match[1], data['provider_id'], data.get('model')))
         return None

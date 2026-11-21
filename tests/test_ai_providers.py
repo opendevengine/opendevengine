@@ -227,10 +227,10 @@ class AIProvidersAPITests(unittest.TestCase):
         self.assertEqual(created.status, 201)
         pid = created.body['id']
         self.assertEqual([p['id'] for p in self.call('GET', '/api/ai-providers').body['providers']], [pid])
-        chosen = self.call('PUT', '/api/ai-jobs/plans', {'provider_id': pid, 'model': 'qwen3:8b'})
+        chosen = self.call('PATCH', '/api/ai-jobs/plans', {'provider_id': pid, 'model': 'qwen3:8b'})
         self.assertEqual(chosen.body['plans']['model'], 'qwen3:8b')
         self.assertEqual(self.call('GET', '/api/ai-jobs').body['plans']['provider_id'], pid)
-        self.call('PUT', '/api/ai-jobs/plans', {'provider_id': None})
+        self.call('PATCH', '/api/ai-jobs/plans', {'provider_id': None})
         self.assertEqual(self.call('GET', '/api/ai-jobs').body['plans']['status'], 'unassigned')
         self.assertEqual(self.call('DELETE', '/api/ai-providers/' + pid).status, 200)
 

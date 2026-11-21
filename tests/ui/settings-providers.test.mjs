@@ -23,7 +23,7 @@ async function setup({ providers = [LOCAL, CLAUDE], jobs = {}, jobSequence = [],
     if (path === "/api/ai-providers" && method === "GET") return { providers };
     if (path === "/api/ai-providers" && method === "POST") return { id: "aip_new", ...body };
     if (path === "/api/ai-jobs" && method === "GET") { if (jobSequence.length) current = { ...current, ...jobSequence.shift() }; return current; }
-    if (path.startsWith("/api/ai-jobs/") && method === "PUT") return current;
+    if (path.startsWith("/api/ai-jobs/") && method === "PATCH") return current;
     if (path.startsWith("/api/provider-profiles/discover")) return { reachable: true, models: [{ name: "qwen3:8b", embedding: false }, { name: "nomic-embed-text", embedding: true }] };
     return current;
   };
@@ -113,13 +113,13 @@ test("add Local shows trust note, no consent", async () => {
   assert.deepEqual(posts(calls)[0][2], { kind: "local", endpoint: "http://100.102.234.29:11434", adapter: "ollama" });
 });
 
-test("Plans & answers sends one PUT", async () => {
+test("Plans & answers sends one PATCH", async () => {
   const { host, calls } = await setup();
   change(select(host, "Plans & answers provider"), "aip_local");
   await settle();
   change(field(host, "Plans & answers model"), "qwen3:8b");
   await settle();
-  const puts = calls.filter(([m, p]) => m === "PUT" && p === "/api/ai-jobs/plans");
+  const puts = calls.filter(([m, p]) => m === "PATCH" && p === "/api/ai-jobs/plans");
   assert.deepEqual(puts.at(-1)[2], { provider_id: "aip_local", model: "qwen3:8b" });
   assert.ok(calls.some(([m, p]) => m === "POST" && p === "/api/ai-jobs/plans/test"), "connection test runs after choosing");
 });
