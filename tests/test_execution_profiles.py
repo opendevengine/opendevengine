@@ -447,6 +447,19 @@ class ProfileTests(unittest.TestCase):
             self.assertNotIn(private, serialized)
         self.assertNotIn(PRIVATE, json.dumps(self.private_result()))
 
+    def test_profile_test_passes_vault_key_only_in_api_key_mode(self):
+        from types import SimpleNamespace
+        from opendevengine.platform.secrets import SecretValue
+        with self.platform.store.transaction() as db:
+            db.execute("INSERT INTO secret_refs VALUES('ref-k','memory','provider_api_key','coding',1,NULL)")
+        self.providers.secrets = SimpleNamespace(resolve=lambda ref: SecretValue('sk-vault-' + ref))
+        self.create(auth_mode='api_key', secret_ref='ref-k'); self.request(); self.work()
+        self.assertEqual(self.adapter.kwargs['api_key'], 'sk-vault-ref-k')
+        self.assertEqual(self.adapter.kwargs['auth_mode'], 'api_key')
+        self.assertNotIn('sk-vault', json.dumps(self.result()) + json.dumps(self.private_result()))
+        self.create(name='Login'); self.request(); self.work()
+        self.assertIsNone(self.adapter.kwargs['api_key'])
+
     def test_profile_test_passes_the_chosen_model_and_legacy_versions_pass_none(self):
         self.create(agent_model='sonnet'); self.request(); self.work()
         self.assertEqual('passed', self.result()['status'])

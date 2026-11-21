@@ -294,6 +294,21 @@ class ExecutionProfileService:
         with self.store.read() as db:
             return self._version(db, self._row(db, 'execution_profile_versions', version_id))
 
+    def version_api_key(self, version_id):
+        """The vault key an api_key version runs with, resolved right before launch; None for CLI login."""
+        with self.store.read() as db:
+            ref = self._row(db, 'execution_profile_versions', version_id)['secret_ref']
+        if ref is None:
+            return None
+        secrets = getattr(self.providers, 'secrets', None)
+        try:
+            if secrets is None:
+                raise PlatformError('Credential storage is unavailable.')
+            return secrets.resolve(ref).reveal()
+        except PlatformError:
+            pass
+        _error('execution_credential_unavailable')
+
     @_storage_boundary
     def default_profile_id(self):
         """The live managed profile when it passed; otherwise a unique live passing profile.
@@ -626,7 +641,8 @@ class ExecutionProfileService:
                 harness_confirmed = False
                 try:
                     result = adapter.run(
-                        endpoint, _PROMPT, auth_mode=version['auth_mode'], synthetic=True,
+                        endpoint, _PROMPT, auth_mode=version['auth_mode'], api_key=self.version_api_key(version['id']),
+                        synthetic=True,
                         local_only=False, external_source_consent=False,
                         on_inventory_verified=inventory_ready, emit=lambda *_: None,
                         stop_event=stop, on_started=started,

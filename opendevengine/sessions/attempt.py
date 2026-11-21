@@ -781,7 +781,8 @@ class Attempt:
         started = time.monotonic()
         adapter_error = None
         try:
-            result = adapter.run(endpoint, prompt, auth_mode=snap['auth_mode'], on_inventory_verified=self.inventory_verified,
+            result = adapter.run(endpoint, prompt, auth_mode=snap['auth_mode'], api_key=self.svc.version_api_key(snap['profile_version_id']),
+                                 on_inventory_verified=self.inventory_verified,
                                  emit=self.adapter_emit, synthetic=False, local_only=False,
                                  external_source_consent=snap['allow_external_source'] is True, stop_event=self.stop_event,
                                  on_started=self.on_started, timeout_seconds=min(agent['wall_seconds'], remaining),

@@ -321,9 +321,9 @@ class ScriptedAgent:
 
     def run(self, endpoint, prompt, *, auth_mode, on_inventory_verified, emit, synthetic=False, local_only=True,
             external_source_consent=False, stop_event=None, on_started=None, timeout_seconds=180, max_turns=12,
-            max_budget_usd=1.0, max_output_bytes=524288, model=None):
+            max_budget_usd=1.0, max_output_bytes=524288, model=None, api_key=None):
         world = self.world
-        world.runs.append({'prompt': prompt, 'auth_mode': auth_mode, 'synthetic': synthetic, 'local_only': local_only,
+        world.runs.append({'prompt': prompt, 'auth_mode': auth_mode, 'api_key': api_key, 'synthetic': synthetic, 'local_only': local_only,
                            'consent': external_source_consent, 'timeout_seconds': timeout_seconds,
                            'max_turns': max_turns, 'max_budget_usd': max_budget_usd, 'stop_event': stop_event,
                            'model': model})
@@ -460,6 +460,9 @@ class FakeProfiles:
         if version_id not in self.versions:
             raise ProfileError('not_found')
         return copy.deepcopy(self.versions[version_id])
+
+    def version_api_key(self, version_id):
+        return 'sk-fixture-coding-key' if self.versions[version_id]['auth_mode'] == 'api_key' else None
 
     def run_test(self, job, context):
         self.tests.append(job.id)
