@@ -18,6 +18,9 @@ FAKE_CLI = r'''
 import json, os, subprocess, sys, time
 from pathlib import Path
 here = Path(__file__).resolve().parent
+def save(results):  # rename, so the test never reads a partly written file
+    (here / "results.tmp").write_text(json.dumps(results))
+    os.replace(here / "results.tmp", here / "results.json")
 args = sys.argv[1:]
 while args[:1] == ["--setting-sources"]:  # CLI global metadata flags precede subcommands
     args = args[2:]
@@ -49,11 +52,11 @@ print(json.dumps({"type": "system", "subtype": "init", "tools": ["mcp__opendeven
                   "mcp_servers": [{"name": "opendevengine", "status": "connected"}], "model": "fake-cli-no-inference"}), flush=True)
 time.sleep(0.5)
 if mode == "hang":
-    (here / "results.json").write_text(json.dumps(results))
+    save(results)
     time.sleep(300)
 results.append(["read", rpc("tools/call", {"name": "read_file", "arguments": {"path": "calc.py"}})["result"]])
 if mode == "followup":
-    (here / "results.json").write_text(json.dumps(results))
+    save(results)
     while not (here / "go").exists():
         time.sleep(0.05)
     listed = rpc("tools/call", {"name": "list_files", "arguments": {}})["result"]
@@ -62,7 +65,7 @@ if mode == "followup":
     markers = re.findall(r"\[message:smsg_[0-9a-f]+:ack\]", listed["content"][0]["text"])
     print(json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "Read the update. " + " ".join(markers)}]}}), flush=True)
 results.append(["write", rpc("tools/call", {"name": "write_file", "arguments": {"path": "calc.py", "content": "def add(a, b):\n    return a + b\n"}})["result"]])
-(here / "results.json").write_text(json.dumps(results))
+save(results)
 print(json.dumps({"type": "assistant", "message": {"content": [{"type": "thinking", "thinking": "PRIVATE-REASONING"},
       {"type": "text", "text": "Fixed add"}, {"type": "tool_use", "name": "mcp__opendevengine__write_file", "input": {"content": "PRIVATE-INPUT"}}]}}), flush=True)
 print(json.dumps({"type": "result", "subtype": "success", "result": "done", "usage": {"input_tokens": 3, "output_tokens": 2},
