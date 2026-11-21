@@ -19,6 +19,9 @@ def strings(value):
         text(item,4000)
 
 
+def approved(item):
+    return item.get('approved') is True
+
 def safe_path(value):
     text(value,1000)
     if value.startswith('/'):
@@ -86,7 +89,7 @@ class PlanService:
             strings(content[key])
         for key,required in (('findings',('text','citation_ids')),('steps',('title','description','paths','citation_ids')),('validation',('command','expected','source','citation_ids'))):
             for item in content[key]:
-                shape(item,required)
+                shape(item,required,('approved',) if key=='validation' else ())
                 strings(item['citation_ids'])
                 if any(c not in citations for c in item['citation_ids']):
                     raise ValueError('Unknown evidence ID.')
@@ -99,6 +102,8 @@ class PlanService:
                     item['paths']=[safe_path(path) for path in item['paths']]
                 if key=='validation' and (item['source'] not in ('observed','proposed') or item['source']=='observed' and not item['citation_ids']):
                     raise ValueError('Invalid validation evidence.')
+                if key=='validation' and type(item.get('approved',False)) is not bool:
+                    raise ValueError('Invalid validation approval.')
         question_ids=set()
         for q in content['open_questions']:
             shape(q,('id','text','blocking','answer'))
@@ -140,6 +145,9 @@ class PlanService:
                 raise InvalidTransition('Repository unavailable.')
         for c in content['citations']:
             citation(self.index,c)
+        if source!='manual':
+            # Only the user's own edits can approve a validation command to run as shell.
+            content={**content,'validation':[{**item,'approved':False} for item in content['validation']]}
         number=1 if parent is None else one(db,'plan_versions',parent)['version']+1
         ident=new_id('pv'); now=self.clock(); canonical=encode(content)
         db.execute('INSERT INTO plan_versions (id,plan_id,version,parent_version_id,scope_revision,content_json,content_hash,source,profile_version_id,generation_json,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)',(ident,plan_id,number,parent,scope_revision,canonical,hashlib.sha256(canonical.encode()).hexdigest(),source,profile,encode(generation or {}),now))
@@ -201,6 +209,8 @@ class PlanService:
                 citation(self.index,ctn)
             except Exception:
                 reasons.append('citation_unavailable')
+        if not all(approved(item) for item in c['validation']):
+            warnings.append('validation_unapproved')
         if any(q['blocking'] and not q['answer'] for q in c['open_questions']):
             reasons.append('blocking_questions')
         if not c['execution_context']['execution_profile_id'] or self.execution_preflight is None:
