@@ -39,6 +39,18 @@ async function open(b, pollMs = 1e6) {
 async function until(check, rounds = 200) { for (let i = 0; i < rounds; i++) { if (check()) return; await settle(2); await new Promise(r => setTimeout(r, 2)); } assert.fail('condition not reached'); }
 const posts = (b, suffix) => b.requests.filter(r => r.method === 'POST' && r.url.endsWith(suffix)).map(r => JSON.parse(r.body));
 
+test('checks skipped because the plan did not approve them are not reported as failing', async () => {
+  const b = setup((m, u) => {
+    if (u === '/api/sessions/s/publication') return notFound;
+    if (u === '/api/sessions/s/publication-preview') return preview({checks:{fully_validated:false, summary:{passed:1, not_run:1}, skipped_not_approved:1}});
+  });
+  const {ui, area} = await open(b);
+  button(area, 'Create draft PR').click(); await settle();
+  const text = visibleText(area);
+  assert.match(text, /1 skipped \(not approved\)/);
+  assert.doesNotMatch(text, /Not fully validated: 1 not run/); ui.close();
+});
+
 test('a running session explains publishing waits for the session to finish and never asks for a publication', async () => {
   const b = setup(() => undefined, {state: session({state:'running', phase:'agent'})});
   const {ui, area} = await open(b);
