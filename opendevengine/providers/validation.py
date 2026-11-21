@@ -102,9 +102,19 @@ def ollama_url():
         return DEFAULT_OLLAMA
 
 
+# Hosts of Local providers the user added on the AI providers page: their own machines.
+_trusted_hosts = frozenset()
+
+
+def set_trusted_hosts(hosts):
+    """Replace the trusted set with exactly these hosts (the caller passes every saved Local host)."""
+    global _trusted_hosts
+    _trusted_hosts = frozenset(str(host).strip().lower().strip('[]') for host in hosts if str(host).strip())
+
+
 def is_local_host(host):
-    """Loopback, or the one address the user configured for Ollama (e.g. their own machine on a VPN)."""
-    if is_loopback_host(host):
+    """Loopback, the address configured for Ollama, or a host the user saved as a Local provider."""
+    if is_loopback_host(host) or (host or '').lower().strip('[]') in _trusted_hosts:
         return True
     try:
         return ipaddress.ip_address(host) == ipaddress.ip_address(urlsplit(ollama_url()).hostname)

@@ -97,6 +97,17 @@ class ApplicationServiceTests(TestCase):
             finally:
                 platform.close()
 
+    def test_patch_roles_accepts_several(self):
+        platform = Platform.open(None); self.addCleanup(platform.close)
+        services = ApplicationServices(platform)
+        profile = services.api.dispatch('POST', '/api/provider-profiles', body={
+            'name': 'Local chat', 'adapter': 'ollama', 'endpoint': 'http://127.0.0.1:11434',
+            'model': 'synthetic', 'config': {'capabilities': ['chat']}}).body
+        response = services.api.dispatch('PATCH', '/api/settings/model-roles', body={
+            'assignments': {'ask': profile['id'], 'planning': profile['id'], 'summary': profile['id']}})
+        self.assertEqual(response.status, 200)
+        self.assertEqual({response.body['roles'][r]['profile_id'] for r in ('ask', 'planning', 'summary')}, {profile['id']})
+
     def test_background_worker_executes_durable_handler_and_joins_before_store_close(self):
         platform = Platform.open(None)
         self.addCleanup(platform.close)

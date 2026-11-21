@@ -362,22 +362,34 @@ class ProviderService:
     @_storage_boundary
     def assign_role(self, role, profile_id):
         role = validate_role(role)
+        return self.assign_roles({role: profile_id})[role]
+
+    @_storage_boundary
+    def assign_roles(self, assignments):
+        """Apply several role assignments in one transaction: all of them or none."""
+        if not isinstance(assignments, dict) or not 1 <= len(assignments) <= len(ROLES):
+            raise fail('assignments')
+        assignments = {validate_role(role): profile_id for role, profile_id in assignments.items()}
         with self.store.transaction() as conn:
-            if profile_id is None:
-                conn.execute('DELETE FROM model_role_assignments WHERE role=?', (role,))
-            else:
-                profile = self._profile_row(conn, profile_id)
-                if profile['deleted_at'] is not None:
-                    raise ProfileDeleted()
-                version = self._version_row(conn, profile['active_version_id'])
-                if _REQUIRED_ROLE_CAPABILITY[role] not in json.loads(version['config'])['capabilities']:
-                    raise UnsupportedCapability(detail={'capability': _REQUIRED_ROLE_CAPABILITY[role]})
-                if self._persisted_local_only(conn) and destination_for(version['endpoint'])['kind'] != 'local':
-                    raise DestinationNotAllowed()
-                conn.execute('INSERT INTO model_role_assignments VALUES (?,?,?) '
-                             'ON CONFLICT(role) DO UPDATE SET profile_id=excluded.profile_id, updated_at=excluded.updated_at',
-                             (role, profile_id, self.clock()))
-            return self._roles(conn)[role]
+            for role, profile_id in assignments.items():
+                self._assign(conn, role, profile_id)
+            return self._roles(conn)
+
+    def _assign(self, conn, role, profile_id):
+        if profile_id is None:
+            conn.execute('DELETE FROM model_role_assignments WHERE role=?', (role,))
+        else:
+            profile = self._profile_row(conn, profile_id)
+            if profile['deleted_at'] is not None:
+                raise ProfileDeleted()
+            version = self._version_row(conn, profile['active_version_id'])
+            if _REQUIRED_ROLE_CAPABILITY[role] not in json.loads(version['config'])['capabilities']:
+                raise UnsupportedCapability(detail={'capability': _REQUIRED_ROLE_CAPABILITY[role]})
+            if self._persisted_local_only(conn) and destination_for(version['endpoint'])['kind'] != 'local':
+                raise DestinationNotAllowed()
+            conn.execute('INSERT INTO model_role_assignments VALUES (?,?,?) '
+                         'ON CONFLICT(role) DO UPDATE SET profile_id=excluded.profile_id, updated_at=excluded.updated_at',
+                         (role, profile_id, self.clock()))
 
     def _roles(self, conn):
         local_only = self._persisted_local_only(conn)

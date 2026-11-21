@@ -196,12 +196,12 @@ class FeatureAPI:
             if len(data) != 1:
                 raise ValueError('Update one setting or role at a time.')
             assignments = data.get('assignments', {})
-            if not isinstance(assignments, dict) or len(assignments) > 1 or set(assignments) - {'ask', 'planning', 'summary', 'embedding'}:
+            if not isinstance(assignments, dict) or set(assignments) - {'ask', 'planning', 'summary', 'embedding'}:
                 raise ValueError('Invalid role assignments.')
             if 'local_only' in data:
                 self.providers.update_settings(local_only=data['local_only'])
-            for role, profile_id in assignments.items():
-                self.providers.assign_role(role, profile_id)
+            if assignments:
+                self.providers.assign_roles(assignments)
             return APIResponse(200, {'roles': self.providers.roles(), 'settings': self.providers.settings()})
         return None
 
