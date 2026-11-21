@@ -78,43 +78,44 @@ On the Repositories page, two switches are independent per repository:
 - **Use in Ask**: index it and include it in answers and plans.
 - **Allow changes**: let sessions open draft pull requests against it.
 
-## Models
+## AI providers
 
-Settings → Models. Supported providers:
+Settings → AI providers. Add the providers you use:
 
-- **Ollama** on this computer (detected automatically), or on another machine you own with
-  `--ollama-url http://<ip>:11434`; that IP is then treated as local
-- **OpenAI-compatible servers** such as LM Studio, vLLM or llama.cpp, or hosted APIs
-- **Claude Code CLI**, using your own Claude subscription login
+- **Claude**: an Anthropic API key, or your `claude` CLI login (Pro or Max).
+- **Codex (OpenAI)**: an OpenAI API key; the API URL is editable.
+- **Local models**: an Ollama or OpenAI-compatible server (LM Studio, vLLM, llama.cpp) by URL,
+  on this computer or another machine you own. A Local URL is treated as your own machine:
+  code is sent there without asking.
 
-Assign a model to each role: answering questions, writing plans and repository summaries
-take any chat-capable profile; code search embeddings (optional, improves search) need an
-embedding-capable Ollama or OpenAI-compatible profile. The Claude Code CLI provides chat
-only. **Keep everything on
-this computer** is on by default; remote providers need that turned off and the profile
-explicitly allowed to receive source. Connection tests send synthetic content only.
+Adding Claude or Codex asks once for permission to send parts of your code to Anthropic or
+OpenAI, and turns off **Keep everything on this computer**. Turning that back on in Settings →
+Privacy blocks those providers again.
+
+Then choose what each job uses: **Plans & answers**, **Coding** and, optionally, **Code search**
+(an embedding model on a Local Ollama server). Repository summaries follow Plans & answers
+unless you change them under **More jobs**. Coding uses Claude for now; Codex for coding is
+planned. Connection tests send synthetic content only. Older model profiles and the coding
+agent's own settings remain under **Advanced**.
 
 ## Implementation sessions and draft pull requests
 
 Finished sessions offer **Delete session content**; local content is purged while minimal identity and GitHub PRs remain.
 
-Requirements: Docker running, a container image already pulled (sessions never pull
-images and have no network; for Python projects, `docker pull python:3.12-slim`), and the
-[Claude Code](https://docs.claude.com/en/docs/claude-code) CLI installed and logged in
-(`claude`). Start OpenDevEngine with `--data-dir`.
+Requirements: Docker running, the `python:3.12-slim` image already pulled (sessions never
+pull images and have no network: `docker pull python:3.12-slim`), and the
+[Claude Code](https://docs.claude.com/en/docs/claude-code) CLI installed. Start OpenDevEngine
+with `--data-dir`.
 
-1. **Settings → Privacy:** turn off **Keep everything on this computer**. The coding agent
-   sends the plan and permitted source to Anthropic.
-2. **Settings → Coding agent:** set the **Pull request author** (name and email for
-   commits), create an execution profile with your image, optionally choose a **Claude model**
-   (blank uses your Claude Code default), tick **Allow sending repository source to the external
-   coding model**, and run **Test execution profile** until it passes.
+1. **Settings → AI providers:** add **Claude** (API key or your `claude` login) and choose it
+   for **Coding**. OpenDevEngine sets up the coding environment and runs a short test coding
+   task; wait for **✓ tested**. To sign pull request commits with your name, set the
+   **Pull request author** under **Advanced**.
+2. *(Optional)* Choose a different provider for **Plans & answers**, for example a Local model.
 3. **Repositories:** turn on **Use in Ask** and **Allow changes** for the target repository.
 4. **Ask:** describe the change with the repository attached and click **Generate plan**.
-   When exactly one execution profile has passed its test, new plans use it and are ready
-   to start; click **Start session** on the plan card. With several tested profiles, open the
-   plan, **Edit plan → Execution and publication**, choose one, **Save immutable version**,
-   then **Start session**.
+   New plans use the coding provider you chose and are ready to start; click **Start session**
+   on the plan card.
 5. **Session:** follow progress, the diff and checks. Validation runs inside the container.
    **Stop session** cancels it and confirms the container is gone.
 6. **PR tab → Create draft PR:** review repository, branches, changed paths and checks, edit
@@ -150,8 +151,8 @@ opendevengine --repo web=/path/to/storefront --repo api=/path/to/orders-api
   repositories; each suggestion shows the terms that matched.
 - **GitHub setup is unavailable.** Credentials need persistent storage and an unlocked OS
   credential vault: start with `--data-dir` and unlock your keychain.
-- **A session fails before the agent starts.** Check that Docker is running, the profile's
-  image is already pulled locally, and **Test execution profile** passes in Settings.
+- **A session fails before the agent starts.** Check that Docker is running,
+  `python:3.12-slim` is pulled locally, and Coding shows **✓ tested** in Settings → AI providers.
 
 ## Security and privacy
 
