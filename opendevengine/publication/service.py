@@ -192,6 +192,8 @@ class PublicationService:
             status = item.get('status')
             label = status if status in ('passed', 'failed') else 'not run'
             limited = limited or label != 'passed'
+            if status == 'not_run' and (item.get('environment') or {}).get('reason') == 'not_approved':
+                label = 'skipped (not approved)'
             lines.append('- %s — %s' % (safe(command_text or 'Unrecorded command', 150), label))
         if not items:
             lines.append('- No recorded validation commands — not run')

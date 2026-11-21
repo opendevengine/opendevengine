@@ -268,10 +268,10 @@ function createPublicationArea({section, sessionID, request, pollMs, isLive, onC
     const summary = c.summary && typeof c.summary === 'object' ? c.summary : {};
     const items = Array.isArray(c.items) ? c.items : [];
     const tally = {...summary}; if (!Object.keys(tally).length) for (const item of items) tally[item.status] = (tally[item.status] || 0) + 1;
-    const counts = Object.entries(tally).filter(([, n]) => Number.isFinite(n)).map(([status, n]) => `${n} ${human(status)}`).join(' · ');
     // Checks the plan did not approve were never run; they are skipped, not failing.
     const skipped = Number.isSafeInteger(c.skipped_not_approved) && c.skipped_not_approved > 0 ? c.skipped_not_approved : 0;
-    if (skipped && tally.not_run) tally.not_run -= skipped;
+    if (skipped && tally.not_run) { tally.not_run = Math.max(0, tally.not_run - skipped); if (!tally.not_run) delete tally.not_run; }
+    const counts = Object.entries(tally).filter(([, n]) => Number.isFinite(n)).map(([status, n]) => `${n} ${human(status)}`).join(' · ');
     const failing = ['failed', 'unavailable', 'error', 'not_run', 'timed_out'].filter(s => tally[s] > 0);
     const skippedText = skipped ? ` ${skipped} skipped (not approved).` : '';
     if (c.fully_validated === true) box.append(el('p', `All recorded checks passed${counts ? ` (${counts})` : ''}.`));

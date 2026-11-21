@@ -2,6 +2,7 @@
 import json
 import unittest
 
+from opendevengine.sessions.prompt import build_prompt
 from test_sessions_fixture import SessionCase
 
 
@@ -97,6 +98,50 @@ class SessionApprovalTests(SessionCase):
         sid, final = self.run_session('k-approve-ok', [check(approved=True)], publication={'policy': 'on_success_draft'})
         self.assertTrue(final['outcome']['validation']['fully_validated'], final['outcome'])
         self.assertTrue(final['outcome']['publication_eligible'], final['outcome'])
+
+    def test_agent_prompt_omits_unapproved_checks(self):
+        self.world.commands['python test_calc.py'] = ok
+        self.world.script = [('write_file', {'path': 'calc.py', 'content': self.FIX})]
+        self.run_session('k-approve-prompt', [check(approved=True), check(command=self.BAD, expected='x')])
+        prompt = self.world.runs[-1]['prompt']
+        self.assertIn('`python test_calc.py`', prompt)
+        self.assertNotIn(self.BAD, prompt)
+
+    def test_retry_keeps_the_prompt_of_a_session_started_before_approval(self):
+        self.world.script = [('fail', 'agent_error')]
+        sid, final = self.run_session('k-approve-v1', [check(), check(command='npm test')])
+        self.assertEqual(final['state'], 'failed', final)
+        plan = self.plans.get(final['plan_id'], final['plan_version_id'])['version']
+        with self.store.read() as db:
+            row = db.execute('SELECT s.instructions_json, r.base_sha FROM sessions s JOIN session_repositories r ON r.session_id=s.id WHERE s.id=?', (sid,)).fetchone()
+        old, _ = build_prompt(plan['content'], plan_version_id=plan['id'], content_hash=plan['content_hash'],
+                              repository_name=self.github.get_repository(self.repo)['full_name'], base_sha=row['base_sha'],
+                              instructions_version='opendevengine.session-instructions/1')
+        self.assertIn('`npm test`', old)
+        import hashlib
+        instructions = dict(json.loads(row['instructions_json']), version='opendevengine.session-instructions/1',
+                            prompt_sha256=hashlib.sha256(old.encode()).hexdigest())
+        with self.store.transaction() as db:
+            db.execute('UPDATE sessions SET instructions_json=? WHERE id=?', (json.dumps(instructions), sid))
+        self.world.script = []
+        retried = self.sessions.retry(sid, 'k-approve-v1-retry')
+        self.assertTrue(retried['session_id'])
+
+
+class PromptVersionTests(unittest.TestCase):
+    CONTENT = {'goal': 'g', 'user_request': 'u', 'validation': [check(approved=True), check(command='npm test')]}
+
+    def build(self, **kw):
+        return build_prompt(self.CONTENT, plan_version_id='pv', content_hash='h', repository_name='o/r', base_sha='b', **kw)[0]
+
+    def test_current_prompt_lists_only_approved_checks(self):
+        prompt = self.build()
+        self.assertIn('`python test_calc.py`', prompt)
+        self.assertNotIn('npm test', prompt)
+
+    def test_version_one_prompt_is_unchanged(self):
+        prompt = self.build(instructions_version='opendevengine.session-instructions/1')
+        self.assertIn('Validation (the service also runs these independently after you finish):\n- `python test_calc.py` expected: passes\n- `npm test` expected: passes\n', prompt)
 
 
 if __name__ == '__main__':

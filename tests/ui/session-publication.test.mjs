@@ -48,7 +48,7 @@ test('checks skipped because the plan did not approve them are not reported as f
   button(area, 'Create draft PR').click(); await settle();
   const text = visibleText(area);
   assert.match(text, /1 skipped \(not approved\)/);
-  assert.doesNotMatch(text, /Not fully validated: 1 not run/); ui.close();
+  assert.doesNotMatch(text, /not run/); ui.close();
 });
 
 test('a running session explains publishing waits for the session to finish and never asks for a publication', async () => {

@@ -19,7 +19,7 @@ from opendevengine.indexing.safety import excluded
 from opendevengine.platform.clock import now_ms, new_id
 from opendevengine.platform.errors import PlatformError
 from .errors import SessionError
-from .prompt import INSTRUCTIONS_VERSION, alias_for, build_prompt, context_aliases
+from .prompt import INSTRUCTIONS_VERSION, VERSION_1, alias_for, build_prompt, context_aliases
 from .redaction import event_payload, redact_text
 from .workspace import canonical, sha256
 
@@ -568,7 +568,9 @@ class SessionService:
             raise SessionError('base_advanced', details=[observation])
         prompt, _ = build_prompt(content, plan_version_id=plan_version_id, content_hash=content_hash,
                                  repository_name=repo['full_name'], base_sha=write['revision'],
-                                 contexts=context_aliases(content))
+                                 contexts=context_aliases(content),
+                                 instructions_version=INSTRUCTIONS_VERSION if predecessor is None else
+                                 _loads(predecessor['instructions_json'], {}).get('version', VERSION_1))
         if predecessor is not None:
             snapshot = _loads(predecessor['profile_snapshot_json'], {})
             limits = _loads(predecessor['limits_json'], {})

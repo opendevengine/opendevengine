@@ -28,7 +28,7 @@ from opendevengine.platform.worker import JobInterrupted
 from .broker import ModeRunner, SessionBroker
 from .errors import SessionError
 from .processes import start_identity
-from .prompt import build_prompt, context_aliases
+from .prompt import VERSION_1, build_prompt, context_aliases
 from .redaction import redact_text
 from .service import REVOKED_REASONS, SOURCE_EVENT_TYPES, TERMINAL, _loads
 from .workspace import acquire_github, acquisition_limits, broker_exclusions, canonical, review_changes, sha256
@@ -678,7 +678,8 @@ class Attempt:
         repo = self.svc.github.get_repository(self.write_repo)
         prompt, error = build_prompt(content, plan_version_id=self.session['plan_version_id'],
                                      content_hash=self.session['content_hash'], repository_name=repo['full_name'],
-                                     base_sha=self.repo_row['base_sha'], contexts=context_aliases(content))
+                                     base_sha=self.repo_row['base_sha'], contexts=context_aliases(content),
+                                     instructions_version=_loads(self.session['instructions_json'], {}).get('version', VERSION_1))
         if error or sha256(prompt.encode()) != _loads(self.session['instructions_json'], {}).get('prompt_sha256'):
             raise _Abort('blocked', error or 'plan_changed')
         try:
