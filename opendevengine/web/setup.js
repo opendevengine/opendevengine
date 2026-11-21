@@ -110,7 +110,7 @@ export async function renderSetup(host, { request, onDone = () => {}, onRoles = 
     const chat = (discovered.models || []).find((m) => !m.embedding);
     const embed = (discovered.models || []).find((m) => m.embedding);
     const choose = el("a", "Choose…");
-    choose.setAttribute("href", "#/settings/models");
+    choose.setAttribute("href", "#/settings/providers");
     if (chat) {
       const found = ollamaHost ? `Found Ollama on ${ollamaHost}` : "Found Ollama";
       models.body.append(el("p", `${found} with ${[chat.name, embed?.name].filter(Boolean).join(" and ")}. Use them?`, "detail-muted"));

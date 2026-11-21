@@ -77,7 +77,7 @@ test("Use these assigns the found chat model to answering and planning and the e
   const assignments = calls.filter(([m, p]) => m === "PATCH" && p === "/api/settings/model-roles").map(([, , b]) => b.assignments);
   assert.deepEqual(assignments, [{ ask: "prof_1" }, { planning: "prof_1" }, { embedding: "prof_2" }]);
   assert.equal(rolesSeen.length, 2, "the rerender after assigning reports the new roles to the page");
-  assert.ok(host.querySelectorAll("a").find((a) => a.getAttribute("href") === "#/settings/models" && a.textContent === "Choose…"));
+  assert.ok(host.querySelectorAll("a").find((a) => a.getAttribute("href") === "#/settings/providers" && a.textContent === "Choose…"));
 });
 
 test("an Ollama on another machine is named in the intro, when found, when empty and when unreachable", async () => {

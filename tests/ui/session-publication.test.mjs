@@ -75,7 +75,7 @@ test('preview shows repository, branches, stats, collapsed paths, disclosed chec
   assert.match(text, /Not fully validated: 1 failed, 2 unavailable/);
   assert.equal(field(area, 'Pull request title').value, 'OpenDevEngine session s'); assert.match(field(area, 'Pull request description').value, /## Summary/);
   assert.match(text, /Set the commit author name and email used for pull requests\./); assert.match(text, /can't write to this repository/);
-  assert.ok(area.querySelector('a[href="#/settings/agent"]')); assert.ok(area.querySelector('a[href="#/settings/github"]'));
+  assert.ok(area.querySelector('a[href="#/settings/providers"]')); assert.ok(area.querySelector('a[href="#/settings/github"]'));
   assert.match(text, /Code: publication_identity_required/);
   const submit = button(area, 'Publish draft PR'); assert.equal(submit.disabled, true); assert.equal(submit.getAttribute('aria-describedby'), 'publication-blocked-note');
   submit.closest('form').requestSubmit(); await settle(); assert.equal(posts(b, '/pull-requests').length, 0);

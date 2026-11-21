@@ -1,7 +1,9 @@
 // Settings page: section navigation, GitHub setup through the App Manifest flow, privacy.
 import { button, el, toggleSwitch } from "./ui.js";
 
-const SECTIONS = [["github", "GitHub"], ["models", "Models"], ["agent", "Coding agent"], ["privacy", "Privacy"], ["health", "System health"]];
+const SECTIONS = [["github", "GitHub"], ["providers", "AI providers"], ["privacy", "Privacy"], ["health", "System health"]];
+// The Models and Coding agent sections moved into AI providers; their old links land there.
+const MOVED = { models: "providers", agent: "providers" };
 const STORAGE_NEEDED = "GitHub setup needs saved storage and an unlocked secure key store. Start OpenDevEngine with --data-dir and unlock your keychain.";
 const STATUS = { manifest_key_not_saved: "The App was created on GitHub but its key wasn't saved. Delete it in GitHub → Settings → Developer settings → GitHub Apps, fix storage, then try again.", connected: "GitHub connected.", manifest_created: "App created. Now install it on your repositories.", pending_approval: "Installation is waiting for an organization owner's approval." };
 
@@ -171,8 +173,7 @@ export function createSettingsPage({ host, request, sections, submitForm = defau
       }
       return wrap;
     },
-    models: () => sections.models ?? el("p", "Model settings aren't available in this build."),
-    agent: () => sections.agent ?? el("p", "The coding agent isn't available in this build.", "detail-muted"),
+    providers: () => sections.providers ?? el("p", "AI provider settings aren't available in this build."),
     privacy,
     health: systemHealth,
   };
@@ -180,9 +181,8 @@ export function createSettingsPage({ host, request, sections, submitForm = defau
   return {
     element: root,
     mount() { if (root.parentNode !== host) host.replaceChildren(status, root); },
-    setAgent(element) { sections.agent = element; },
     async show(section = "github", { code = "" } = {}) {
-      const id = builders[section] ? section : "github";
+      const id = builders[MOVED[section] ?? section] ? MOVED[section] ?? section : "github";
       for (const link of nav.querySelectorAll("a")) {
         if (link.dataset.section === id) link.setAttribute("aria-current", "page");
         else link.removeAttribute("aria-current");
