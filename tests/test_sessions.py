@@ -136,8 +136,8 @@ class RunTests(SessionCase):
     def test_full_session_events_diff_validation_and_replay(self):
         self.script_fix()
         _, version = self.ready_plan(validation=[
-            {'command': 'python test_calc.py', 'expected': 'passes', 'source': 'proposed', 'citation_ids': []},
-            {'command': 'npm test', 'expected': 'passes', 'source': 'proposed', 'citation_ids': []}])
+            {'command': 'python test_calc.py', 'expected': 'passes', 'source': 'proposed', 'citation_ids': [], 'approved': True},
+            {'command': 'npm test', 'expected': 'passes', 'source': 'proposed', 'citation_ids': [], 'approved': True}])
         self.sessions.start()
         sid = self.sessions.launch(version['id'], version['content_hash'], 'k-full')['session_id']
         final = self.wait_state(sid)

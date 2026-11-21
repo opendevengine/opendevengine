@@ -56,8 +56,8 @@ class DockerSessionTests(SessionCase):
                              ('write_file', {'path': 'calc.py', 'content': 'def add(a, b):\n    return a + b\n'}),
                              ('run_command', {'argv': ['python', 'test_calc.py']})]
         _, version = self.ready_plan(validation=[
-            {'command': 'python test_calc.py', 'expected': 'passes', 'source': 'proposed', 'citation_ids': []},
-            {'command': 'curl https://example.com', 'expected': 'n/a', 'source': 'proposed', 'citation_ids': []}])
+            {'command': 'python test_calc.py', 'expected': 'passes', 'source': 'proposed', 'citation_ids': [], 'approved': True},
+            {'command': 'curl https://example.com', 'expected': 'n/a', 'source': 'proposed', 'citation_ids': [], 'approved': True}])
         self.sessions.start()
         sid = self.sessions.launch(version['id'], version['content_hash'], 'k-docker')['session_id']
         final = self.wait_state(sid, timeout=180)
@@ -81,7 +81,7 @@ class DockerSessionTests(SessionCase):
         content = self.content()
         _, version = self.ready_plan(repositories=content['repositories'] + [read], validation=[
             {'command': 'test ! -w /context/gh-2/shared/money.py', 'expected': 'context read-only', 'source': 'proposed',
-             'citation_ids': []}])
+             'citation_ids': [], 'approved': True}])
         self.sessions.start()
         sid = self.sessions.launch(version['id'], version['content_hash'], 'k-docker-ctx')['session_id']
         final = self.wait_state(sid, timeout=180)

@@ -1,4 +1,5 @@
 """Validation commands run only when the user approved them in the plan version (issue #9)."""
+import json
 import unittest
 
 from test_sessions_fixture import SessionCase
@@ -40,6 +41,62 @@ class PlanApprovalTests(SessionCase):
         saved = self.plans.save_version(plan['id'], content, plan['version']['id'], source='amendment')
         self.assertIs(saved['version']['content']['validation'][0]['approved'], False)
         self.assertIs(content['validation'][0]['approved'], True)  # the caller's dict is untouched
+
+
+def ok(files):
+    return {'exit_code': 0, 'stdout': 'ok', 'stderr': '', 'timed_out': False, 'truncated': False}
+
+
+class SessionApprovalTests(SessionCase):
+    BAD = 'Run `python3 -m http.server 8000` and $(touch /tmp/x) check it.'
+    FIX = 'def add(a, b):\n    return a + b\n'
+
+    def run_session(self, key, validation, **changes):
+        _, version = self.ready_plan(validation=validation, **changes)
+        self.sessions.start()
+        sid = self.sessions.launch(version['id'], version['content_hash'], key)['session_id']
+        return sid, self.wait_state(sid)
+
+    def test_unapproved_command_never_reaches_runner(self):
+        called = []
+        self.world.commands['python test_calc.py'] = ok
+        self.world.commands[self.BAD] = lambda files: called.append(1) or ok(files)
+        self.world.script = [('write_file', {'path': 'calc.py', 'content': self.FIX})]
+        sid, final = self.run_session('k-approve', [check(approved=True), check(command=self.BAD, expected='x')])
+        self.assertEqual(final['state'], 'completed', final)
+        self.assertEqual(called, [])
+        result = self.sessions.validations(sid)
+        self.assertEqual([i['status'] for i in result['items']], ['passed', 'not_run'])
+        self.assertEqual(result['items'][1]['environment']['reason'], 'not_approved')
+        self.assertFalse(result['items'][1]['required'])
+        self.assertTrue(result['items'][0]['required'])
+        self.assertEqual(result['skipped_not_approved'], 1)
+        self.assertFalse(final['outcome']['validation']['fully_validated'])
+        started = [e for e in self.all_events(sid) if e['type'] == 'validation.started']
+        self.assertEqual([e['payload']['ordinal'] for e in started], [1])
+
+    def test_unapproved_reason_wins_when_agent_fails(self):
+        self.world.script = [('fail', 'agent_error')]
+        sid, final = self.run_session('k-approve-fail', [check(approved=True), check(command='npm test')])
+        self.assertNotEqual(final['state'], 'completed', final)
+        items = self.sessions.validations(sid)['items']
+        self.assertEqual([i['environment']['reason'] for i in items], ['agent_not_completed', 'not_approved'])
+
+    def test_skipped_checks_block_auto_publication(self):
+        self.world.commands['python test_calc.py'] = ok
+        self.world.commands['npm test'] = ok
+        self.world.script = [('write_file', {'path': 'calc.py', 'content': self.FIX})]
+        sid, final = self.run_session('k-approve-publish', [check(approved=True), check(command='npm test')],
+                                      publication={'policy': 'on_success_draft'})
+        self.assertEqual((final['state'], final['outcome']['result']), ('completed', 'reviewable'), final)
+        self.assertFalse(final['outcome']['publication_eligible'])
+
+    def test_all_approved_passing_checks_stay_publishable(self):
+        self.world.commands['python test_calc.py'] = ok
+        self.world.script = [('write_file', {'path': 'calc.py', 'content': self.FIX})]
+        sid, final = self.run_session('k-approve-ok', [check(approved=True)], publication={'policy': 'on_success_draft'})
+        self.assertTrue(final['outcome']['validation']['fully_validated'], final['outcome'])
+        self.assertTrue(final['outcome']['publication_eligible'], final['outcome'])
 
 
 if __name__ == '__main__':

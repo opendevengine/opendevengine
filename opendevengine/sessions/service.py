@@ -887,7 +887,8 @@ class SessionService:
                           'output_redacted': r['artifact_id'] is not None and log is None,
                           'started_at': r['started_at'], 'finished_at': r['finished_at']})
         summary = {k: sum(1 for i in items if i['status'] == k) for k in ('passed', 'failed', 'timeout', 'error', 'not_run', 'unavailable')}
-        return {'items': items, 'summary': summary, 'source_available': bool(live),
+        skipped = sum(1 for i in items if i['status'] == 'not_run' and i['environment'].get('reason') == 'not_approved')
+        return {'items': items, 'summary': summary, 'skipped_not_approved': skipped, 'source_available': bool(live),
                 'fully_validated': bool(items) and summary['passed'] == len(items)}
 
     # --------------------------------------------------------------- messages
