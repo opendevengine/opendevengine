@@ -18,6 +18,7 @@ import re
 import threading
 import time
 
+from opendevengine.ask.plans import approved
 from opendevengine.execution.broker import MUTATING
 from opendevengine.execution.runner import RunnerError
 from opendevengine.github.errors import GitHubError
@@ -27,7 +28,7 @@ from opendevengine.platform.worker import JobInterrupted
 from .broker import ModeRunner, SessionBroker
 from .errors import SessionError
 from .processes import start_identity
-from .prompt import build_prompt, context_aliases
+from .prompt import VERSION_1, build_prompt, context_aliases
 from .redaction import redact_text
 from .service import REVOKED_REASONS, SOURCE_EVENT_TYPES, TERMINAL, _loads
 from .workspace import acquire_github, acquisition_limits, broker_exclusions, canonical, review_changes, sha256
@@ -677,7 +678,8 @@ class Attempt:
         repo = self.svc.github.get_repository(self.write_repo)
         prompt, error = build_prompt(content, plan_version_id=self.session['plan_version_id'],
                                      content_hash=self.session['content_hash'], repository_name=repo['full_name'],
-                                     base_sha=self.repo_row['base_sha'], contexts=context_aliases(content))
+                                     base_sha=self.repo_row['base_sha'], contexts=context_aliases(content),
+                                     instructions_version=_loads(self.session['instructions_json'], {}).get('version', VERSION_1))
         if error or sha256(prompt.encode()) != _loads(self.session['instructions_json'], {}).get('prompt_sha256'):
             raise _Abort('blocked', error or 'plan_changed')
         try:
@@ -858,7 +860,10 @@ class Attempt:
                    'env': {'HOME': '/tmp', 'TMPDIR': '/tmp'}, 'shell': 'container sh -c'}
             status, exit_code, artifact, started, finished, log = 'not_run', None, None, None, None, None
             reason = None
-            if run and self.reason is None and not self.lost:
+            required = approved(item)
+            if not required:
+                reason = 'not_approved'  # never handed to the shell; the user did not approve this text
+            elif run and self.reason is None and not self.lost:
                 code = self.authority(full=True)
                 remaining = int((self.deadline - self.svc.clock()) / 1000) - 5 if self.deadline else 0
                 if code:
@@ -910,8 +915,8 @@ class Attempt:
                 command = ({'redacted': True} if revoked else
                            {'argv': argv, 'command': item['command'], 'expected': item['expected']})
                 db.execute('INSERT INTO validation_runs (id,session_id,ordinal,command_json,source,status,required,exit_code,'
-                           'artifact_id,environment_json,started_at,finished_at) VALUES (?,?,?,?,?,?,1,?,?,?,?,?)',
-                           (vid, self.sid, ordinal, canonical(command), item['source'], status, exit_code, artifact,
+                           'artifact_id,environment_json,started_at,finished_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+                           (vid, self.sid, ordinal, canonical(command), item['source'], status, int(required), exit_code, artifact,
                             canonical(dict(env, reason=reason)), started, finished))
                 self.append(db, row, 'validation.finished', {'ordinal': ordinal, 'validation_id': vid, 'status': status,
                                                             'exit_code': exit_code, 'reason': reason})

@@ -374,3 +374,12 @@ test('a failed plan title read is retried by the next load', async () => {
   fail = false; button(ui.panel, 'Reload').click(); await settle(); await settle();
   assert.equal(reads, 2); assert.equal(ui.panel.querySelector('a.session-row-title').textContent, 'Fix the rounding bug'); ui.close();
 });
+
+test('a check the plan did not approve is shown as skipped, not failed', async () => {
+  const checks = {fully_validated: false, skipped_not_approved: 1, summary: {not_run: 1}, items: [{ordinal: 1, status: 'not_run', required: false, exit_code: null, command: {argv: ['sh', '-c', 'npm test'], command: 'npm test', expected: ''}, source: 'proposed', output: null, started_at: null, finished_at: null, environment: {reason: 'not_approved', network: 'none'}}]};
+  const b = setup((m, u) => u.endsWith('/validations') ? checks : undefined);
+  const ui = await open(b);
+  b.document.getElementById('session-tab-2').click();
+  const panel = b.document.getElementById('session-tabpanel-2');
+  assert.match(visibleText(panel.querySelector('.check-item')), /Skipped: not approved in the plan\./); ui.close();
+});

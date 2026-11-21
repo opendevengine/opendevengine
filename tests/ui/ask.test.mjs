@@ -123,3 +123,33 @@ test('any visible plan edit blocks Start until saved or explicitly discarded',as
  assert.equal(ui.panel.querySelectorAll('label').find(x=>x.textContent.startsWith('1. title')).querySelector('textarea').value,'Old step');
  assert.equal(start().disabled,false);start().click();await settle();assert.equal(submitted.length,1);
 });
+
+test('the plan editor approves checks one by one and flags commands that read as sentences',async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'ask-ui-approve-'));
+ const call=(path,method='GET',body)=>{const u=new URL(path,'http://localhost');return JSON.parse(execFileSync(process.env.OPENDEVENGINE_TEST_PYTHON || 'python3',[bridge,dir],{input:JSON.stringify({path:u.pathname,query:u.search.slice(1),method,body}),encoding:'utf8'}));};
+ try {
+  const seed=call('/test/seed','POST').body;
+  const b=createBrowser(html,{hash:`#/plans/${seed.plan.id}/${seed.plan.version.id}`,respond:(m,u,o)=>call(u,m,o.body?JSON.parse(o.body):undefined)});install(b);
+  b.window.confirm=()=>true;
+  await import(new URL('../../opendevengine/web/app.js?ask-approve',import.meta.url));await settle();
+  const panel=b.document.querySelector('.persistent-ask');const side=b.document.getElementById('side-panel');
+  const button=text=>[...panel.querySelectorAll('button'),...side.querySelectorAll('button')].find(x=>x.textContent===text);
+  const label=text=>[...side.querySelectorAll('label')].filter(x=>x.textContent.startsWith(text));
+  const field=text=>label(text)[0].querySelector('textarea');
+  assert.match(visibleText(panel),/Not approved — this check will be skipped/);
+  button('Edit plan').click();await settle();
+  side.querySelectorAll('[role="tab"]').find(x=>x.textContent===`Edit · ${seed.plan.title}`)?.click();await settle();
+  const boxes=()=>label('Run this check (runs the command as shell in the session container)').map(x=>x.querySelector('input'));
+  assert.equal(boxes().length,1);assert.equal(boxes()[0].checked,false);
+  boxes()[0].click();
+  input(field('1. command'),'python -m unittest -v');
+  assert.doesNotMatch(visibleText(side),/This looks like a sentence, not a command\./);
+  button('Add validation').click();await settle();
+  assert.equal(boxes().length,2);assert.equal(boxes()[0].checked,true);assert.equal(boxes()[1].checked,false);
+  input(field('2. command'),'Run the tests. Then check the output');input(field('2. expected'),'Pass');
+  assert.match(visibleText(side),/This looks like a sentence, not a command\./);
+  button('Save immutable version').click();await settle(30);
+  const saved=call(`/api/plans/${seed.plan.id}`).body.version.content.validation;
+  assert.deepEqual(saved.map(x=>[x.command,x.approved]),[['python -m unittest -v',true],['Run the tests. Then check the output',false]]);
+ } finally { rmSync(dir,{recursive:true,force:true}); }
+});

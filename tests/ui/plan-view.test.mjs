@@ -44,7 +44,7 @@ test("a saved plan reads as a document with names, not identifiers", async () =>
   }
   assert.match(text, /Which gateway should we use\?/);
   assert.match(text, /src\/services\/payment\.ts/);
-  assert.match(text, /Proposed, not run yet\./);
+  assert.match(text, /Not approved — this check will be skipped\./);
 });
 
 test("readiness codes become sentences and identifiers are folded into Version details", async () => {
@@ -71,4 +71,15 @@ test("citation chips open the cited source", async () => {
 test("redacted content shows a plain notice", async () => {
   const { text } = await render(version({ content: null }));
   assert.match(text, /unavailable or was removed/);
+});
+
+test("each check says whether it will run, and unapproved checks are a readiness warning", async () => {
+  const content = { ...version().content, validation: [
+    { command: "npm test", expected: "All tests pass", source: "proposed", citation_ids: [], approved: true },
+    { command: "Run the app and check it.", expected: "", source: "proposed", citation_ids: [] }] };
+  const { text } = await render(version({ content, readiness: { state: "ready", blocking_reasons: [], warnings: ["validation_unapproved"] } }));
+  assert.match(text, /Approved — runs as a shell command in the session container\./);
+  assert.match(text, /Not approved — this check will be skipped\. Approve it by editing the plan\./);
+  assert.match(text, /Some checks are not approved and will be skipped\./);
+  assert.doesNotMatch(text, /Proposed, not run yet\./);
 });

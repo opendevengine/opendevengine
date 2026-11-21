@@ -268,11 +268,15 @@ function createPublicationArea({section, sessionID, request, pollMs, isLive, onC
     const summary = c.summary && typeof c.summary === 'object' ? c.summary : {};
     const items = Array.isArray(c.items) ? c.items : [];
     const tally = {...summary}; if (!Object.keys(tally).length) for (const item of items) tally[item.status] = (tally[item.status] || 0) + 1;
+    // Checks the plan did not approve were never run; they are skipped, not failing.
+    const skipped = Number.isSafeInteger(c.skipped_not_approved) && c.skipped_not_approved > 0 ? c.skipped_not_approved : 0;
+    if (skipped && tally.not_run) { tally.not_run = Math.max(0, tally.not_run - skipped); if (!tally.not_run) delete tally.not_run; }
     const counts = Object.entries(tally).filter(([, n]) => Number.isFinite(n)).map(([status, n]) => `${n} ${human(status)}`).join(' · ');
     const failing = ['failed', 'unavailable', 'error', 'not_run', 'timed_out'].filter(s => tally[s] > 0);
+    const skippedText = skipped ? ` ${skipped} skipped (not approved).` : '';
     if (c.fully_validated === true) box.append(el('p', `All recorded checks passed${counts ? ` (${counts})` : ''}.`));
     else {
-      box.append(el('p', failing.length ? `Not fully validated: ${failing.map(s => `${tally[s]} ${human(s)}`).join(', ')}. The default description discloses this; reviewers see it on GitHub.` : `Not fully validated${counts ? ` (${counts})` : ': no passing check run was recorded'}. The default description discloses this.`, 'session-warning'));
+      box.append(el('p', (failing.length ? `Not fully validated: ${failing.map(s => `${tally[s]} ${human(s)}`).join(', ')}. The default description discloses this; reviewers see it on GitHub.` : `Not fully validated${counts ? ` (${counts})` : ': no passing check run was recorded'}. The default description discloses this.`) + skippedText, 'session-warning'));
     }
     if (items.length) { const list = el('ul'); for (const item of items) list.append(el('li', `Check ${scalar(item.ordinal)} · ${human(item.status)}${item.required ? ' · required' : ''}`)); box.append(list); }
     parent.append(box);
@@ -984,6 +988,7 @@ export function createSessionPanel({host, request = executionRequest, onAvailabl
         const head = el('h3', undefined, 'check-head'); head.append(badge(c.status === 'passed' ? 'ok' : c.status === 'not_run' ? 'off' : c.status === 'unavailable' ? 'warn' : 'danger', human(c.status)), el('span', ` Check ${scalar(c.ordinal)}`), el('small', ` · ${c.required ? 'required' : 'optional'}${ran ? ` · ${ran}` : ''}${Number.isSafeInteger(c.exit_code) ? ` · exit ${c.exit_code}` : ''}`, 'detail-muted'));
         const cmd = el('pre', undefined, 'check-command'); cmd.append(el('code', command));
         box.append(head, cmd);
+        if (c.status === 'not_run' && c.environment?.reason === 'not_approved') box.append(el('p', 'Skipped: not approved in the plan.', 'detail-muted'));
         if (sourceAllowed && typeof c.command?.expected === 'string' && c.command.expected) box.append(el('p', `Expected: ${c.command.expected}`, 'detail-muted'));
         box.append(el('h4', 'Output'), el('pre', !sourceAllowed || c.output_redacted ? 'Output redacted' : c.output ?? 'Output unavailable', 'check-output'));
         const env = c.environment || {}, more = el('details', undefined, 'check-env'), label = el('summary', 'Environment'); label.dataset.focus = `env-${scalar(c.ordinal)}`; more.append(label);

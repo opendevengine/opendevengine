@@ -21,6 +21,7 @@ const WARNINGS = {
   source_indexing: "The repository is still being indexed.",
   source_metadata_only: "Only repository metadata is indexed, not its code.",
   source_failed: "The last indexing run failed.",
+  validation_unapproved: "Some checks are not approved and will be skipped.",
 };
 
 export function readinessSentences(readiness = {}) {
@@ -116,7 +117,8 @@ export function renderPlanDocument(version, { nameFor = (id) => id, onCitation =
       const item = el("div", undefined, "plan-doc-item");
       item.append(el("code", check.command, "plan-doc-command"));
       if (check.expected) item.append(el("p", `Expect: ${check.expected}`));
-      if (check.source === "proposed") item.append(el("p", "Proposed, not run yet.", "plan-doc-note"));
+      item.append(el("p", check.approved === true ? "Approved — runs as a shell command in the session container."
+        : "Not approved — this check will be skipped. Approve it by editing the plan.", "plan-doc-note"));
       box.append(item);
     }
   }

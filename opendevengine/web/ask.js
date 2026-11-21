@@ -9,6 +9,8 @@ import { renderSetup } from "./setup.js";
 // Persistent Ask consumes the frozen AskAPI; source and model output are always text.
 const el = (tag, text) => { const n = document.createElement(tag); if (text !== undefined) n.textContent = text; return n; };
 const enc = encodeURIComponent;
+// Advisory only: a model sometimes writes an English sentence where a validation command belongs.
+const looksLikeProse = text => { const t = String(text || '').trim(); return /\.\s+[A-Za-z]/.test(t) || (t.endsWith('.') && t.split(/\s+/).length >= 5); };
 const destinationText = d => d && typeof d === 'object' ? `${d.kind || 'unknown'}${d.host ? ` · ${d.host}` : d.disclosure ? ` · ${d.disclosure}` : ''}` : 'unknown';
 const coverageText = c => c && typeof c === 'object' ? [Number.isFinite(c.files) ? `${c.files} files` : null, Number.isFinite(c.chunks) ? `${c.chunks} chunks` : null, c.mode ? c.mode.replaceAll('_',' ') : null, c.partial === true ? 'partial coverage' : null].filter(Boolean).join(' · ') || 'unknown' : 'unknown';
 
@@ -463,13 +465,16 @@ export async function createAskPanel({host, request = http, onMount = () => {}, 
       const rows=el('div');group.append(rows);
       const renderRows=()=>{rows.replaceChildren();edited[key].forEach((item,i)=>{
         const row=el('section'); rows.append(row);
-        for(const k of fields){const f=field(row,`${i+1}. ${k}`,item[k]);f.addEventListener('input',()=>{edited[key][i][k]=f.value || (k==='answer'?null:'');});}
+        for(const k of fields){const f=field(row,`${i+1}. ${k}`,item[k]);f.addEventListener('input',()=>{edited[key][i][k]=f.value || (k==='answer'?null:'');});
+          if(key==='validation'&&k==='command'){const warn=el('p','This looks like a sentence, not a command.');warn.className='session-warning';const show=()=>{warn.hidden=!looksLikeProse(f.value);};show();f.addEventListener('input',show);row.append(warn);}}
         if(key==='steps'){const f=field(row,`${i+1}. paths (one per line)`,item.paths.join('\n'));f.addEventListener('input',()=>{item.paths=f.value.split('\n').filter(Boolean);});}
-        if(key==='validation'){const label=el('label','Validation source');const select=el('select');for(const value of ['proposed','observed']){const option=el('option',value);option.value=value;select.append(option);}select.value=item.source;select.addEventListener('change',()=>{item.source=select.value;markPlanDirty();});label.append(select);row.append(label);}
+        if(key==='validation'){const label=el('label','Validation source');const select=el('select');for(const value of ['proposed','observed']){const option=el('option',value);option.value=value;select.append(option);}select.value=item.source;select.addEventListener('change',()=>{item.source=select.value;markPlanDirty();});label.append(select);row.append(label);
+          // Only a check the user ticks here is ever run, as shell, in the session container.
+          const approve=el('label','Run this check (runs the command as shell in the session container)');const box=el('input');box.type='checkbox';box.checked=item.approved===true;box.addEventListener('change',()=>{item.approved=box.checked;markPlanDirty();});approve.append(box);row.append(approve);}
         if(key==='open_questions'){const label=el('label','Blocking question');const check=el('input');check.type='checkbox';check.checked=item.blocking;check.addEventListener('change',()=>{item.blocking=check.checked;markPlanDirty();});label.append(check);row.append(label);}
         button(row,'Remove entry',()=>{edited[key].splice(i,1);markPlanDirty();renderRows();});
       });};renderRows();
-      button(group,`Add ${key==='open_questions'?'question':key==='steps'?'step':'validation'}`,()=>{edited[key].push(key==='steps'?{title:'',description:'',paths:[],citation_ids:[]}:key==='validation'?{command:'',expected:'',source:'proposed',citation_ids:[]}:{id:globalThis.crypto.randomUUID(),text:'',blocking:true,answer:null});markPlanDirty();renderRows();});
+      button(group,`Add ${key==='open_questions'?'question':key==='steps'?'step':'validation'}`,()=>{edited[key].push(key==='steps'?{title:'',description:'',paths:[],citation_ids:[]}:key==='validation'?{command:'',expected:'',source:'proposed',citation_ids:[],approved:false}:{id:globalThis.crypto.randomUUID(),text:'',blocking:true,answer:null});markPlanDirty();renderRows();});
     }
     editor.append(el('h4','Findings'),el('pre',c.findings.map(f=>f.text).join('\n')));
     button(editor,'Save immutable version',async()=>{readers.forEach(read=>read());const controls=editor.querySelectorAll('textarea, input, select');controls.forEach(n=>n.disabled=true);let saved;try{saved=await request(`/api/plans/${enc(id)}/versions`,'POST',{content:edited,parent_version_id:v.id});}finally{controls.forEach(n=>n.disabled=false);}if(token!==epoch)return;draft=false;planDraft=false;location.hash=`#/plans/${enc(id)}/${enc(saved.version.id)}`;});

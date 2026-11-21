@@ -531,7 +531,7 @@ class SessionCase(unittest.TestCase):
                    'findings': [{'text': 'add subtracts', 'citation_ids': ['e1']}],
                    'requirements': ['add returns a + b'],
                    'steps': [{'title': 'Fix', 'description': 'Use +', 'paths': ['calc.py'], 'citation_ids': ['e1']}],
-                   'validation': [{'command': 'python test_calc.py', 'expected': 'passes', 'source': 'proposed', 'citation_ids': []}],
+                   'validation': [{'command': 'python test_calc.py', 'expected': 'passes', 'source': 'proposed', 'citation_ids': [], 'approved': True}],
                    'execution_context': {'execution_profile_id': 'prof_1'}}
         content.update(changes)
         return content

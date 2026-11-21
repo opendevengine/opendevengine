@@ -149,6 +149,14 @@ class PublicationTests(TestCase):
         self.assertNotIn('SOURCE MUST NEVER APPEAR', preview['body'])
         self.assertNotIn('Limitations:', preview['body'])
 
+    def test_defaults_say_a_check_the_plan_did_not_approve_was_skipped(self):
+        self.pinned_content({'steps': []})
+        self.sessions.value['validations'] = {'fully_validated': False, 'items': [
+            {'command': {'argv': ['sh', '-c', 'npm test']}, 'status': 'not_run', 'environment': {'reason': 'not_approved'}}]}
+        body = self.svc.preview('ses')['body']
+        self.assertIn('npm test — skipped (not approved)', body)
+        self.assertIn('Limitations:', body)
+
     def test_defaults_bound_long_goal_and_disclose_failed_and_not_run_checks(self):
         self.pinned_content({'goal': 'Improve ' * 3000, 'steps': []})
         for status in ('failed', 'not_run', 'timeout', 'unavailable'):
