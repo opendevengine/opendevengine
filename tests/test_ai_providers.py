@@ -21,7 +21,7 @@ class AIProvidersTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.platform = Platform.open(Path(self.temp.name))
         self.addCleanup(self.platform.close)
-        self.addCleanup(validation.set_trusted_hosts, [])
+        self.addCleanup(validation.set_trusted_endpoints, [])
         self.vault = MemoryVault()
         self.secrets = SecretService(self.platform.store, self.vault)
         self.providers = ProviderService(self.platform.store, self.secrets, transport=FakeTransport())
@@ -78,17 +78,49 @@ class AIProvidersTests(unittest.TestCase):
         self.assertEqual((role['destination']['kind'], role['model']), ('local', 'qwen3:8b'))
 
     def test_remove_local_keeps_shared_host(self):
-        first, second = self.local(), self.local('http://100.64.0.9:1234')
+        first, second = self.local(), self.local()
         self.catalog.remove(first['id'])
-        self.assertEqual(validation.destination_for('http://100.64.0.9:1/v1')['kind'], 'local')
+        self.assertEqual(validation.destination_for('http://100.64.0.9:11434')['kind'], 'local')
         self.catalog.remove(second['id'])
-        self.assertEqual(validation.destination_for('http://100.64.0.9:1/v1')['kind'], 'remote')
+        self.assertEqual(validation.destination_for('http://100.64.0.9:11434')['kind'], 'remote')
 
     def test_trust_survives_restart(self):
         self.local()
-        validation.set_trusted_hosts([])
+        validation.set_trusted_endpoints([])
         AIProviders(self.platform.store, self.secrets, self.providers, self.profiles).refresh_trust()
-        self.assertEqual(validation.destination_for('http://100.64.0.9:1/v1')['kind'], 'local')
+        self.assertEqual(validation.destination_for('http://100.64.0.9:11434')['kind'], 'local')
+
+    def test_local_provider_trusts_only_its_own_address(self):
+        handmade = self.providers.create_profile({'name': 'hosted', 'adapter': 'openai_compatible',
+                                                  'endpoint': 'https://api.openai.com/v1', 'model': 'm',
+                                                  'config': {'capabilities': ['chat']}})
+        self.catalog.add('local', endpoint='http://api.openai.com/v1', adapter='openai_compatible')
+        self.assertEqual(validation.destination_for('https://api.openai.com/v1')['kind'], 'remote')
+        self.assertEqual(validation.destination_for('http://api.openai.com:8080/v1')['kind'], 'remote')
+        self.assertEqual(validation.destination_for('http://api.openai.com/v1')['kind'], 'local')
+        self.assertTrue(self.providers.settings()['local_only'])
+        with self.assertRaises(Exception):
+            self.providers.assign_role('planning', handmade['id'])
+
+    def test_bad_coding_model_keeps_working_setup(self):
+        login = self.catalog.add('claude', use_login=True, consent=True)
+        self.catalog.choose('coding', login['id'], 'opus')
+        before = self.managed()[0]['id']
+        keyed = self.claude()
+        vault_before = dict(self.vault.values)
+        self.code('validation', lambda: self.catalog.choose('coding', keyed['id'], 'sonnet 5'))
+        self.assertEqual([r['id'] for r in self.managed()], [before])
+        self.assertEqual(self.vault.values, vault_before)
+        self.assertEqual(self.catalog.jobs()['coding']['provider_id'], login['id'])
+
+    def test_clearing_summary_follows_plans_again(self):
+        provider = self.local()
+        self.catalog.choose('plans', provider['id'], 'qwen3:8b')
+        self.catalog.choose('summary', provider['id'], 'qwen3:4b')
+        self.catalog.choose('summary', None)
+        roles = self.providers.roles()
+        self.assertEqual(roles['summary']['profile_id'], roles['planning']['profile_id'])
+        self.assertEqual(self.catalog.jobs()['summary']['model'], 'qwen3:8b')
 
     def test_plans_sets_ask_planning_summary(self):
         provider = self.local()
@@ -215,7 +247,7 @@ class AIProvidersAPITests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.platform = Platform.open(Path(self.temp.name))
         self.addCleanup(self.platform.close)
-        self.addCleanup(validation.set_trusted_hosts, [])
+        self.addCleanup(validation.set_trusted_endpoints, [])
         self.services = ApplicationServices(self.platform, provider_transport=FakeTransport())
 
     def call(self, method, path, body=None):

@@ -102,19 +102,38 @@ def ollama_url():
         return DEFAULT_OLLAMA
 
 
-# Hosts of Local providers the user added on the AI providers page: their own machines.
-_trusted_hosts = frozenset()
+# Addresses (scheme, host, port) of Local providers the user saved on the AI providers page.
+# Only that exact address is the user's machine: other profiles on the same host stay remote.
+_trusted_origins = frozenset()
 
 
-def set_trusted_hosts(hosts):
-    """Replace the trusted set with exactly these hosts (the caller passes every saved Local host)."""
-    global _trusted_hosts
-    _trusted_hosts = frozenset(str(host).strip().lower().strip('[]') for host in hosts if str(host).strip())
+def endpoint_origin(url):
+    """scheme://host:port with the default port filled in, or None for an unparsable URL."""
+    try:
+        parts = urlsplit(str(url).strip())
+        port = parts.port
+    except ValueError:
+        return None
+    scheme, host = parts.scheme.lower(), (parts.hostname or '').lower()
+    if scheme not in ('http', 'https') or not host:
+        return None
+    return f"{scheme}://{host}:{port or (443 if scheme == 'https' else 80)}"
+
+
+def set_trusted_endpoints(urls):
+    """Replace the trusted set with exactly these addresses (every saved Local provider)."""
+    global _trusted_origins
+    _trusted_origins = frozenset(o for o in map(endpoint_origin, urls) if o)
+
+
+def is_trusted_endpoint(url, extra=()):
+    origin = endpoint_origin(url)
+    return origin is not None and (origin in _trusted_origins or origin in {endpoint_origin(u) for u in extra})
 
 
 def is_local_host(host):
-    """Loopback, the address configured for Ollama, or a host the user saved as a Local provider."""
-    if is_loopback_host(host) or (host or '').lower().strip('[]') in _trusted_hosts:
+    """Loopback, or the one address the user configured for Ollama (e.g. their own machine on a VPN)."""
+    if is_loopback_host(host):
         return True
     try:
         return ipaddress.ip_address(host) == ipaddress.ip_address(urlsplit(ollama_url()).hostname)
@@ -122,7 +141,7 @@ def is_local_host(host):
         return False
 
 
-def validate_endpoint(value):
+def validate_endpoint(value, *, trusted=()):
     """Return the normalized endpoint base URL (no trailing slash)."""
     if not isinstance(value, str) or not 1 <= len(value) <= 2048 or value != value.strip():
         raise fail('endpoint')
@@ -139,7 +158,7 @@ def validate_endpoint(value):
         raise fail('endpoint')
     if parts.username is not None or parts.password is not None or parts.query or parts.fragment:
         raise fail('endpoint')
-    if scheme == 'http' and not is_local_host(host):
+    if scheme == 'http' and not (is_local_host(host) or is_trusted_endpoint(value, trusted)):
         raise fail('endpoint')
     path = parts.path.rstrip('/')
     if any(segment in ('.', '..') for segment in path.split('/')) or '%' in path:
@@ -153,7 +172,7 @@ def validate_endpoint(value):
 def destination_for(endpoint):
     parts = urlsplit(endpoint)
     host = parts.hostname or ''
-    return {'kind': 'local' if is_local_host(host) else 'remote',
+    return {'kind': 'local' if is_local_host(host) or is_trusted_endpoint(endpoint) else 'remote',
             'host': parts.netloc}
 
 

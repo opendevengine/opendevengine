@@ -5,15 +5,15 @@ live in the vault: the provider row holds the master copy, and every profile it 
 its own copy, so removing or rotating never leaves one job holding a stale reference.
 """
 import json
-from urllib.parse import urlsplit
 
 from opendevengine.platform.clock import new_id, now_ms
+from opendevengine.execution.profiles import AGENT_MODEL
 from opendevengine.platform.errors import PlatformError
 
 from .claude_cli import ENDPOINT as CLAUDE_CLI_ENDPOINT
 from .discovery import probe_embedding_dimensions
 from .errors import ProfileNameConflict
-from .validation import set_trusted_hosts, validate_endpoint
+from .validation import set_trusted_endpoints, validate_endpoint
 
 KINDS = ('claude', 'codex', 'local')
 JOBS = ('plans', 'coding', 'search', 'summary')
@@ -52,14 +52,10 @@ class AIProviders:
 
     # ----- trust -------------------------------------------------------------------------
 
-    def _local_hosts(self, db):
-        return [urlsplit(row[0]).hostname or '' for row in
-                db.execute("SELECT endpoint FROM ai_providers WHERE kind='local'")]
-
-    def refresh_trust(self, extra=()):
-        """Every saved Local provider's host counts as the user's own machine."""
+    def refresh_trust(self):
+        """Every saved Local provider's exact address counts as the user's own machine."""
         with self.store.read() as db:
-            set_trusted_hosts(self._local_hosts(db) + list(extra))
+            set_trusted_endpoints([row[0] for row in db.execute("SELECT endpoint FROM ai_providers WHERE kind='local'")])
 
     # ----- providers ---------------------------------------------------------------------
 
@@ -88,14 +84,11 @@ class AIProviders:
             return OPENAI_V1
         if not isinstance(endpoint, str) or not endpoint.strip():
             raise AIProviderError('validation')
-        host = urlsplit(endpoint.strip()).hostname or ''
-        self.refresh_trust([host] if kind == 'local' else [])
         try:
-            value = validate_endpoint(endpoint.strip())
+            # A Local address the user typed is theirs; check it without trusting it globally yet.
+            value = validate_endpoint(endpoint.strip(), trusted=[endpoint.strip()] if kind == 'local' else [])
         except PlatformError:
             raise AIProviderError('validation') from None
-        finally:
-            self.refresh_trust()
         if (kind == 'codex' or adapter == 'openai_compatible') and not value.endswith('/v1'):
             raise AIProviderError('validation')
         return value
@@ -191,6 +184,7 @@ class AIProviders:
             self._retire_execution(profile_id)
         if row['secret_ref']:
             self.secrets.revoke(row['secret_ref'])
+        self._summary_follows_plans()
 
     # ----- profiles behind a job ---------------------------------------------------------
 
@@ -271,6 +265,8 @@ class AIProviders:
             raise AIProviderError('coding_unsupported')
         if self.execution_profiles is None:
             raise AIProviderError('coding_unavailable')
+        if not AGENT_MODEL.fullmatch(model):  # check before anything changes
+            raise AIProviderError('validation')
         key = self._key(row)
         with self.store.read() as db:
             managed = self._managed(db)
@@ -283,14 +279,20 @@ class AIProviders:
             self._version_execution(managed['id'], {'agent_model': model})
             profile_id = managed['id']
         else:
-            if managed:
-                self._retire_execution(managed['id'])
+            # Create the new setup first; the working one is retired only once it exists.
             spec = {'name': 'Claude coding · ' + new_id('c')[-6:], 'adapter': 'claude_code',
                     'auth_mode': 'api_key' if key else 'cli_login', 'image': CODING_IMAGE,
                     'allow_external_source': True, 'agent_model': model}
             if key:
                 spec['secret_ref'] = self.secrets.create('provider_api_key', 'execution:managed', key).id
-            profile_id = self.execution_profiles.create(spec, managed=True)['id']
+            try:
+                profile_id = self.execution_profiles.create(spec, managed=True)['id']
+            except BaseException:
+                if key:
+                    self.secrets.revoke(spec['secret_ref'])
+                raise
+            if managed:
+                self._retire_execution(managed['id'])
             self.execution_profiles.request_test(profile_id)
         with self.store.transaction() as db:
             db.execute("DELETE FROM ai_provider_profiles WHERE kind='execution'")
@@ -326,6 +328,8 @@ class AIProviders:
                          'summary': ['summary'], 'search': ['embedding']}[job]
                 self.providers.assign_roles({role: None for role in roles})
             self._remember(job, None, None)
+            if job == 'summary':
+                self._summary_follows_plans()
             return self.jobs()
         model = _model(model)
         if job == 'coding':
@@ -344,6 +348,13 @@ class AIProviders:
             self.providers.assign_roles({role: profile_id for role in roles})
         self._remember(job, row['id'], model)
         return self.jobs()
+
+    def _summary_follows_plans(self):
+        """Without its own choice, repository summaries use the Plans & answers model."""
+        with self.store.read() as db:
+            if 'summary' in self._choices(db):
+                return
+        self.providers.assign_roles({'summary': self.providers.roles()['planning']['profile_id']})
 
     def test_job(self, job):
         """Run the existing synthetic check for the profile behind a job."""

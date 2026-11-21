@@ -98,18 +98,18 @@ class ProviderTests(unittest.TestCase):
 
     def test_trusted_host_is_local(self):
         from opendevengine.providers import validation
-        self.addCleanup(validation.set_trusted_hosts, [])
+        self.addCleanup(validation.set_trusted_endpoints, [])
         self.assertEqual(validation.destination_for('http://100.64.0.9:1234/v1')['kind'], 'remote')
-        validation.set_trusted_hosts(['100.64.0.9', 'Studio.Lan'])
+        validation.set_trusted_endpoints(['http://100.64.0.9:1234', 'http://Studio.Lan:1234/v1'])
         self.assertEqual(validation.destination_for('http://100.64.0.9:1234/v1')['kind'], 'local')
         self.assertEqual(validation.destination_for('http://studio.lan:1234/v1')['kind'], 'local')
         self.assertEqual(validation.validate_endpoint('http://studio.lan:1234/v1'), 'http://studio.lan:1234/v1')
 
     def test_trusted_hosts_are_reference_counted(self):
         from opendevengine.providers import validation
-        self.addCleanup(validation.set_trusted_hosts, [])
-        validation.set_trusted_hosts(['100.64.0.9'])
-        validation.set_trusted_hosts([])
+        self.addCleanup(validation.set_trusted_endpoints, [])
+        validation.set_trusted_endpoints(['http://100.64.0.9:1234'])
+        validation.set_trusted_endpoints([])
         self.assertEqual(validation.destination_for('http://100.64.0.9:1234/v1')['kind'], 'remote')
 
     def test_versions_roles_and_restart(self):
