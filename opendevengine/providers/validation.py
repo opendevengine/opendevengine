@@ -121,6 +121,14 @@ def parse_ollama_url(value):
     if scheme not in ('http', 'https') or not host or parts.username is not None or parts.password is not None \
             or parts.path not in ('', '/') or parts.query or parts.fragment:
         raise ValueError('Use an address such as http://127.0.0.1:11434.')
+    if host != 'localhost':
+        try:
+            ipaddress.ip_address(host)
+        except ValueError:
+            raise ValueError(
+                'Use an IP address for Ollama, not a host name.'
+            ) from None
+
     if not is_private_provider_host(host):
         raise ValueError(
             'Use a loopback or private network IP address for Ollama.')
