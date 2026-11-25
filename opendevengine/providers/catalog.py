@@ -324,7 +324,7 @@ class AIProviders:
                     raise AIProviderError('coding_unavailable')
 
                 checks = db.execute(
-                    'SELECT j.id, j.state '
+                    'SELECT j.id, j.state, j.lease_expires_at, c.error_code '
                     'FROM execution_profile_checks c '
                     'JOIN execution_profile_versions v '
                     'ON v.id=c.version_id '
@@ -333,7 +333,15 @@ class AIProviders:
                     (profile_id,)).fetchall()
 
                 for check in checks:
-                    if check['state'] == 'needs_reconciliation':
+                    if (
+                        check['error_code'] == 'containment_unverified'
+                        or check['state'] == 'needs_reconciliation'
+                        or (
+                            check['state'] == 'leased'
+                            and check['lease_expires_at']
+                            <= self.execution_profiles.clock()
+                        )
+                    ):
                         raise AIProviderError(
                             'execution_test_reconciliation_required')
                     if check['state'] == 'leased':
@@ -390,8 +398,21 @@ class AIProviders:
                 }
 
                 if roles.get('summary') != roles.get('planning'):
-                    self.providers._assign(
-                        db, 'summary', roles.get('planning'))
+                    planning = roles.get('planning')
+
+                    if planning is None:
+                        self.providers._assign(
+                            db, 'summary', None)
+                    else:
+                        # Inherit the existing planning assignment.
+                        # Live privacy policy still gates inference.
+                        db.execute(
+                            'INSERT INTO model_role_assignments '
+                            'VALUES (?, ?, ?) '
+                            'ON CONFLICT(role) DO UPDATE SET '
+                            'profile_id=excluded.profile_id, '
+                            'updated_at=excluded.updated_at',
+                            ('summary', planning, self.clock()))
 
             # Old credentials become unusable at commit.
             for ref in retired:

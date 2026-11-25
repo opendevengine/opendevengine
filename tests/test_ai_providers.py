@@ -614,6 +614,100 @@ class AIProvidersTests(unittest.TestCase):
         self.assertEqual(self._deletion_snapshot(), before)
         self.assertEqual(self.vault.values, vault_before)
 
+    def test_delete_summary_preserves_privacy(self):
+        remote = self.claude()
+        local = self.local()
+
+        self.catalog.choose(
+            'plans', remote['id'], 'claude-sonnet-5-5')
+        self.catalog.choose(
+            'summary', local['id'], 'qwen3:8b')
+
+        self.providers.update_settings(local_only=True)
+
+        self.catalog.remove(local['id'])
+
+        self.assertEqual(self.catalog.list(), [remote])
+        self.assertTrue(
+            self.providers.settings()['local_only'])
+
+        roles = self.providers.roles()
+
+        self.assertEqual(
+            roles['summary']['profile_id'],
+            roles['planning']['profile_id'])
+        self.assertEqual(
+            roles['summary']['status'], 'blocked')
+        self.assertEqual(
+            roles['planning']['status'], 'blocked')
+
+        # Inheriting an assignment must not authorize inference.
+        from opendevengine.providers.errors import DestinationNotAllowed
+
+        with self.assertRaises(DestinationNotAllowed):
+            self.providers.generate(
+                'summary',
+                [{'role': 'user', 'content': 'Synthetic fixture'}])
+
+    def test_delete_rejects_unverified_containment(self):
+        provider = self._deletion_fixture()
+
+        with self.platform.store.read() as db:
+            check = db.execute(
+                'SELECT version_id, job_id '
+                'FROM execution_profile_checks'
+            ).fetchone()
+
+        self.platform.jobs.cancel(check['job_id'])
+
+        self.profiles.reconcile_test(
+            check['version_id'],
+            check['job_id'],
+            containment_confirmed=False)
+
+        before = self._deletion_snapshot()
+        vault_before = dict(self.vault.values)
+
+        self.code(
+            'execution_test_reconciliation_required',
+            lambda: self.catalog.remove(provider['id']))
+
+        self.assertEqual(self._deletion_snapshot(), before)
+        self.assertEqual(self.vault.values, vault_before)
+
+        # Deletion is permitted after verified reconciliation.
+        self.profiles.reconcile_test(
+            check['version_id'],
+            check['job_id'],
+            containment_confirmed=True)
+
+        self.catalog.remove(provider['id'])
+        self.assertEqual(self.catalog.list(), [])
+        self.assertEqual(self.vault.values, {})
+
+    def test_delete_rejects_expired_execution_lease(self):
+        provider = self._deletion_fixture()
+
+        lease = self.platform.jobs.claim(
+            'fixture-worker', kinds=['execution.test'])
+        self.assertIsNotNone(lease)
+
+        with self.platform.store.transaction() as db:
+            db.execute(
+                "UPDATE jobs SET lease_expires_at=? "
+                "WHERE kind='execution.test' AND state='leased'",
+                (self.profiles.clock() - 1,))
+
+        before = self._deletion_snapshot()
+        vault_before = dict(self.vault.values)
+
+        self.code(
+            'execution_test_reconciliation_required',
+            lambda: self.catalog.remove(provider['id']))
+
+        self.assertEqual(self._deletion_snapshot(), before)
+        self.assertEqual(self.vault.values, vault_before)
+
     def test_deletion_rejects_running_execution_check(self):
         provider = self._deletion_fixture()
 
