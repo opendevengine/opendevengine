@@ -282,36 +282,9 @@ class ProviderService:
         conflict = False
         try:
             with self.store.transaction() as conn:
-                profile = self._profile_row(conn, profile_id)
-                if profile['deleted_at'] is not None:
-                    raise ProfileDeleted()
-                current = self._version_row(conn, profile['active_version_id'])
-                merged = {'adapter': changes.get('adapter', current['adapter']),
-                          'endpoint': changes.get('endpoint', current['endpoint']),
-                          'model': changes.get('model', current['model']),
-                          'config': changes.get('config', json.loads(current['config']))}
-                self._validate_adapter_endpoint(merged, secret_value)
-                now = self.clock()
-                version_changed = new_ref is not None or any(
-                    merged[key] != (json.loads(current['config']) if key == 'config' else current[key])
-                    for key in merged)
-                active_version_id = profile['active_version_id']
-                if version_changed:
-                    active_version_id = new_id('pver')
-                    number = conn.execute('SELECT max(version) FROM provider_profile_versions WHERE profile_id=?',
-                                          (profile_id,)).fetchone()[0] + 1
-                    ref = new_ref if new_ref is not None else current['secret_ref']
-                    if new_ref is not None:
-                        old_ref = current['secret_ref']
-                        if old_ref is not None:
-                            self._mark_owned_refs_revoked(conn, profile_id, now, ref_id=old_ref)
-                    conn.execute('INSERT INTO provider_profile_versions VALUES (?,?,?,?,?,?,?,?,?)',
-                                 (active_version_id, profile_id, number, merged['adapter'], merged['endpoint'],
-                                  merged['model'], ref, canonical_json(merged['config']), now))
-                if version_changed or ('name' in changes and changes['name'] != profile['name']):
-                    conn.execute('UPDATE provider_profiles SET name=?, active_version_id=?, updated_at=? WHERE id=?',
-                                 (changes.get('name', profile['name']), active_version_id, now, profile_id))
-                result = self._profile_public(conn, self._profile_row(conn, profile_id))
+                result, old_ref = self._update_profile_in_transaction(
+                    conn, profile_id, changes,
+                    secret_value=secret_value, new_ref=new_ref)
         except sqlite3.IntegrityError:
             conflict = True
         except BaseException:
@@ -326,6 +299,43 @@ class ProviderService:
             # Rotation: previous versions become historical and can no longer be called.
             self._revoke_quietly(old_ref)
         return result
+
+    def _update_profile_in_transaction(
+        self, conn, profile_id, changes, *,
+        secret_value=None, new_ref=None
+    ):
+        old_ref = None
+        profile = self._profile_row(conn, profile_id)
+        if profile['deleted_at'] is not None:
+            raise ProfileDeleted()
+        current = self._version_row(conn, profile['active_version_id'])
+        merged = {'adapter': changes.get('adapter', current['adapter']),
+                  'endpoint': changes.get('endpoint', current['endpoint']),
+                  'model': changes.get('model', current['model']),
+                  'config': changes.get('config', json.loads(current['config']))}
+        self._validate_adapter_endpoint(merged, secret_value)
+        now = self.clock()
+        version_changed = new_ref is not None or any(
+            merged[key] != (json.loads(current['config']) if key == 'config' else current[key])
+            for key in merged)
+        active_version_id = profile['active_version_id']
+        if version_changed:
+            active_version_id = new_id('pver')
+            number = conn.execute('SELECT max(version) FROM provider_profile_versions WHERE profile_id=?',
+                                  (profile_id,)).fetchone()[0] + 1
+            ref = new_ref if new_ref is not None else current['secret_ref']
+            if new_ref is not None:
+                old_ref = current['secret_ref']
+                if old_ref is not None:
+                    self._mark_owned_refs_revoked(conn, profile_id, now, ref_id=old_ref)
+            conn.execute('INSERT INTO provider_profile_versions VALUES (?,?,?,?,?,?,?,?,?)',
+                         (active_version_id, profile_id, number, merged['adapter'], merged['endpoint'],
+                          merged['model'], ref, canonical_json(merged['config']), now))
+        if version_changed or ('name' in changes and changes['name'] != profile['name']):
+            conn.execute('UPDATE provider_profiles SET name=?, active_version_id=?, updated_at=? WHERE id=?',
+                         (changes.get('name', profile['name']), active_version_id, now, profile_id))
+        result = self._profile_public(conn, self._profile_row(conn, profile_id))
+        return result, old_ref
 
     @_storage_boundary
     def delete_profile(self, profile_id):

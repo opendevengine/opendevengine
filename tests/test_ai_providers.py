@@ -240,6 +240,150 @@ class AIProvidersTests(unittest.TestCase):
         self.assertEqual(self.secrets.resolve(ref).reveal(), KEY)
         self.assertEqual(self.vault.values, before)
 
+    def _rotation_snapshot(self):
+        tables = (
+            'ai_providers',
+            'provider_profiles',
+            'provider_profile_versions',
+            'execution_profiles',
+            'execution_profile_versions',
+            'execution_profile_checks',
+            'jobs',
+        )
+
+        with self.platform.store.read() as db:
+            result = {
+                table: sorted(
+                    repr(tuple(r))
+                    for r in db.execute('SELECT * FROM ' + table)
+                )
+                for table in tables
+            }
+            result['live_credentials'] = sorted(
+                r[0] for r in db.execute(
+                    'SELECT id FROM secret_refs WHERE revoked_at IS NULL')
+            )
+
+        return result
+
+    def _assert_rotation_rollback(self, service, method):
+        from unittest.mock import patch
+
+        provider = self.claude()
+        self.catalog.choose(
+            'plans', provider['id'], 'claude-sonnet-5-5')
+        self.catalog.choose(
+            'coding', provider['id'], 'sonnet')
+
+        before = self._rotation_snapshot()
+        vault_before = dict(self.vault.values)
+
+        with patch.object(
+            service, method,
+            side_effect=RuntimeError('Injected rotation failure')
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError, 'Injected rotation failure'
+            ):
+                self.catalog.update(
+                    provider['id'],
+                    api_key='synthetic-rotated-key')
+
+        self.assertEqual(self._rotation_snapshot(), before)
+        self.assertEqual(self.vault.values, vault_before)
+
+    def test_rotation_rolls_back_on_chat_failure(self):
+        self._assert_rotation_rollback(
+            self.providers, '_update_profile_in_transaction')
+
+    def test_rotation_rolls_back_on_execution_failure(self):
+        self._assert_rotation_rollback(
+            self.profiles, '_update_in_transaction')
+
+    def test_rotation_rolls_back_on_test_scheduling_failure(self):
+        self._assert_rotation_rollback(
+            self.profiles, '_request_test_in_transaction')
+
+    def test_rotation_rolls_back_on_staging_failure(self):
+        self._assert_rotation_rollback(
+            self.providers, '_create_secret')
+
+    def test_rotation_rolls_back_on_check_insert_failure(self):
+        import sqlite3
+
+        provider = self.claude()
+        self.catalog.choose(
+            'plans', provider['id'], 'claude-sonnet-5-5')
+        self.catalog.choose(
+            'coding', provider['id'], 'sonnet')
+
+        before = self._rotation_snapshot()
+        vault_before = dict(self.vault.values)
+
+        with self.platform.store.transaction() as db:
+            db.execute("""
+                CREATE TRIGGER reject_check_insert
+                BEFORE INSERT ON execution_profile_checks
+                BEGIN
+                    SELECT RAISE(ABORT, 'Injected check failure');
+                END
+            """)
+
+        with self.assertRaisesRegex(
+            sqlite3.IntegrityError, 'Injected check failure'
+        ):
+            self.catalog.update(
+                provider['id'],
+                api_key='synthetic-rotated-key')
+
+        self.assertEqual(self._rotation_snapshot(), before)
+        self.assertEqual(self.vault.values, vault_before)
+
+    def test_local_endpoint_update_preserves_trust(self):
+        provider = self.local()
+        self.catalog.choose(
+            'plans', provider['id'], 'qwen3:8b')
+
+        endpoint = 'http://100.64.0.10:11434'
+
+        updated = self.catalog.update(
+            provider['id'], endpoint=endpoint)
+
+        self.assertEqual(updated['endpoint'], endpoint)
+
+        role = self.providers.roles()['planning']
+        version = self.providers.get_version(role['version_id'])
+
+        self.assertEqual(version['endpoint'], endpoint)
+        self.assertEqual(
+            validation.destination_for(endpoint)['kind'],
+            'local')
+        self.assertTrue(
+            self.providers.settings()['local_only'])
+
+    def test_rotation_rejects_running_execution_check(self):
+        provider = self.claude()
+        self.catalog.choose(
+            'plans', provider['id'], 'claude-sonnet-5-5')
+        self.catalog.choose(
+            'coding', provider['id'], 'sonnet')
+
+        lease = self.platform.jobs.claim(
+            'fixture-worker', kinds=['execution.test'])
+        self.assertIsNotNone(lease)
+
+        before = self._rotation_snapshot()
+        vault_before = dict(self.vault.values)
+
+        self.code(
+            'coding_check_in_progress',
+            lambda: self.catalog.update(
+                provider['id'],
+                api_key='synthetic-rotated-key'))
+
+        self.assertEqual(self._rotation_snapshot(), before)
+        self.assertEqual(self.vault.values, vault_before)
+
     def test_rotate_key_updates_chat_and_coding(self):
         provider = self.claude()
         self.catalog.choose('plans', provider['id'], 'claude-sonnet-5-5')

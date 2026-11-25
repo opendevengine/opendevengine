@@ -13,7 +13,8 @@ from opendevengine.platform.errors import PlatformError
 from .claude_cli import ENDPOINT as CLAUDE_CLI_ENDPOINT
 from .discovery import probe_embedding_dimensions
 from .errors import ProfileNameConflict
-from .validation import set_trusted_endpoints, validate_endpoint
+from .validation import (set_trusted_endpoints, validate_endpoint,
+                         validate_secret_value, validate_spec)
 
 KINDS = ('claude', 'codex', 'local')
 JOBS = ('plans', 'coding', 'search', 'summary')
@@ -144,6 +145,12 @@ class AIProviders:
                           ).fetchone()
 
     def update(self, provider_id, *, api_key=None, endpoint=None):
+        # Serialize staging, commit and credential cleanup.
+        with self.store.read():
+            return self._update(
+                provider_id, api_key=api_key, endpoint=endpoint)
+
+    def _update(self, provider_id, *, api_key=None, endpoint=None):
         with self.store.read() as db:
             row = self._row(db, provider_id)
         if api_key is None and endpoint is None:
@@ -156,33 +163,140 @@ class AIProviders:
             if row['kind'] == 'claude':
                 raise AIProviderError('validation')
             changes['endpoint'] = self._endpoint(row['kind'], endpoint, row['adapter'])
-        new_ref = self.secrets.create('provider_api_key', f'ai-provider:{provider_id}', api_key).id if api_key else None
+        trusted = ([changes['endpoint']]
+                   if row['kind'] == 'local' and 'endpoint' in changes
+                   else [])
+        changes = validate_spec(changes, partial=True, trusted=trusted)
+
+        staged = []
+        retired = set()
+
+        def stage(label):
+            ref = self.secrets.create(
+                'provider_api_key', label, api_key).id
+            staged.append(ref)
+            return ref
+
         try:
-            with self.store.transaction() as db:
-                db.execute('UPDATE ai_providers SET endpoint=coalesce(?,endpoint), secret_ref=coalesce(?,secret_ref), '
-                           'updated_at=? WHERE id=?', (changes.get('endpoint'), new_ref, self.clock(), provider_id))
+            with self.store.read() as db:
                 links = self._links(db, provider_id, 'provider')
                 coding = self._links(db, provider_id, 'execution')
                 managed = self._managed(db)
-        except Exception:
-            if new_ref:
+
+            live = [
+                link for link in links
+                if self._live_provider_profile(link['profile_id'])
+            ]
+
+            if api_key and live:
+                validate_secret_value(api_key)
+
+            new_ref = (
+                stage(f'ai-provider:{provider_id}')
+                if api_key else None
+            )
+
+            profile_refs = {}
+
+            if api_key:
+                for link in live:
+                    pid = link['profile_id']
+                    ref = self.providers._create_secret(pid, api_key)
+                    staged.append(ref)
+                    profile_refs[pid] = ref
+
+            coding_id = (
+                managed['id']
+                if api_key and managed and any(
+                    link['profile_id'] == managed['id']
+                    for link in coding)
+                else None
+            )
+
+            coding_ref = (
+                stage(f'execution:{coding_id}')
+                if coding_id else None
+            )
+
+            with self.store.transaction() as db:
+                db.execute(
+                    'UPDATE ai_providers SET '
+                    'endpoint=coalesce(?,endpoint), '
+                    'secret_ref=coalesce(?,secret_ref), '
+                    'updated_at=? WHERE id=?',
+                    (changes.get('endpoint'), new_ref,
+                     self.clock(), provider_id))
+
+                if new_ref and row['secret_ref']:
+                    retired.add(row['secret_ref'])
+
+                for link in live:
+                    pid = link['profile_id']
+                    _, old_ref = self.providers._update_profile_in_transaction(
+                        db, pid, changes,
+                        secret_value=api_key,
+                        new_ref=profile_refs.get(pid))
+                    if old_ref:
+                        retired.add(old_ref)
+
+                if coding_id:
+                    old_ref = db.execute(
+                        'SELECT secret_ref FROM execution_profile_versions '
+                        'WHERE id=?',
+                        (managed['active_version_id'],)
+                    ).fetchone()['secret_ref']
+
+                    updated_execution = self.execution_profiles._update_in_transaction(
+                        db, coding_id, {'secret_ref': coding_ref})
+
+                    if old_ref:
+                        retired.add(old_ref)
+
+                    stale = [
+                        r[0] for r in db.execute(
+                            'SELECT c.job_id FROM execution_profile_checks c '
+                            'JOIN execution_profile_versions v ON v.id=c.version_id '
+                            'JOIN jobs j ON j.id=c.job_id '
+                            "WHERE v.profile_id=? AND j.state='queued'",
+                            (coding_id,))
+                    ]
+
+                    for job_id in stale:
+                        self.execution_profiles.jobs.cancel_in_transaction(
+                            db, job_id)
+
+                    check = self.execution_profiles._request_test_in_transaction(
+                        db, coding_id)
+
+                    if check['version_id'] != updated_execution['active_version_id']:
+                        raise AIProviderError('coding_check_in_progress')
+
+                for ref in retired:
+                    db.execute(
+                        'UPDATE secret_refs SET revoked_at=? '
+                        'WHERE id=? AND revoked_at IS NULL',
+                        (self.clock(), ref))
+
+                result = self._public(self._row(db, provider_id))
+
+        except BaseException:
+            for ref in staged:
                 try:
-                    self.secrets.revoke(new_ref)
+                    self.secrets.revoke(ref)
                 except Exception:
                     pass
             raise
-        if new_ref:
-            self.secrets.revoke(row['secret_ref'])
+
+        # Database commit succeeded. Old credentials are
+        # logically revoked; physical cleanup is best effort.
+        for ref in retired:
+            try:
+                self.secrets.revoke(ref)
+            except Exception:
+                pass
+
         self.refresh_trust()
-        for link in links:
-            if not self._live_provider_profile(link['profile_id']):
-                continue
-            self.providers.update_profile(link['profile_id'], changes, secret_value=api_key)
-        if api_key and managed and any(link['profile_id'] == managed['id'] for link in coding):
-            self._version_execution(managed['id'], {'secret_ref': self.secrets.create(
-                'provider_api_key', f'execution:{managed["id"]}', api_key).id})
-        with self.store.read() as db:
-            return self._public(self._row(db, provider_id))
+        return result
 
     def remove(self, provider_id):
         with self.store.transaction() as db:

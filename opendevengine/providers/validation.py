@@ -222,7 +222,7 @@ def validate_model(value):
     return _bounded_text(value, 'model', 200, allow_space=False)
 
 
-def validate_spec(spec, *, partial=False):
+def validate_spec(spec, *, partial=False, trusted=()):
     """Validate a create spec (all keys) or update spec (subset). Returns normalized dict."""
     if not isinstance(spec, dict):
         raise fail('spec')
@@ -241,7 +241,7 @@ def validate_spec(spec, *, partial=False):
             raise fail('adapter')
         result['adapter'] = spec['adapter']
     if 'endpoint' in spec:
-        result['endpoint'] = validate_endpoint(spec['endpoint'])
+        result['endpoint'] = validate_endpoint(spec['endpoint'], trusted=trusted)
     if 'model' in spec:
         result['model'] = validate_model(spec['model'])
     if 'config' in spec:
