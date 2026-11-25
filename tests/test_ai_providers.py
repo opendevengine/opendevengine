@@ -49,6 +49,28 @@ class AIProvidersTests(unittest.TestCase):
             db.execute("UPDATE execution_profile_checks SET status='passed',result_json=? ",
                        (json.dumps({'image_id': 'sha256:' + 'a' * 64, 'capabilities': {}}),))
 
+    def test_failed_add_cleans_up_secret(self):
+        from unittest.mock import patch
+
+        before = dict(self.vault.values)
+
+        with patch.object(
+            self.providers,
+            'update_settings',
+            side_effect=RuntimeError('Injected failure'),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError, 'Injected failure'
+            ):
+                self.catalog.add(
+                    'claude',
+                    api_key=KEY,
+                    consent=True,
+                )
+
+        self.assertEqual(self.catalog.list(), [])
+        self.assertEqual(self.vault.values, before)
+
     def test_remote_provider_requires_consent(self):
         self.code('consent_required', lambda: self.catalog.add('claude', api_key=KEY))
         self.code('consent_required', lambda: self.catalog.add('codex', api_key=KEY, consent=False))

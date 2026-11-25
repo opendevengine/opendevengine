@@ -113,14 +113,22 @@ class AIProviders:
             raise AIProviderError('consent_required')
         provider_id, now = new_id('aip'), self.clock()
         ref = self.secrets.create('provider_api_key', f'ai-provider:{provider_id}', api_key).id if api_key else None
-        if kind != 'local':
-            # One confirmation when adding: this provider may receive source for any job.
-            self.providers.update_settings(local_only=False)
-        auth = 'api_key' if api_key else 'cli_login' if use_login else 'none'
-        with self.store.transaction() as db:
-            db.execute('INSERT INTO ai_providers(id,kind,name,endpoint,adapter,auth,secret_ref,created_at,updated_at) '
-                       'VALUES(?,?,?,?,?,?,?,?,?)', (provider_id, kind, NAMES[kind], endpoint, adapter, auth, ref, now, now))
-            row = self._row(db, provider_id)
+        try:
+            if kind != 'local':
+                # One confirmation when adding: this provider may receive source for any job.
+                self.providers.update_settings(local_only=False)
+            auth = 'api_key' if api_key else 'cli_login' if use_login else 'none'
+            with self.store.transaction() as db:
+                db.execute('INSERT INTO ai_providers(id,kind,name,endpoint,adapter,auth,secret_ref,created_at,updated_at) '
+                           'VALUES(?,?,?,?,?,?,?,?,?)', (provider_id, kind, NAMES[kind], endpoint, adapter, auth, ref, now, now))
+                row = self._row(db, provider_id)
+        except Exception:
+            if ref:
+                try:
+                    self.secrets.revoke(ref)
+                except Exception:
+                    pass
+            raise
         self.refresh_trust()
         return self._public(row)
 
