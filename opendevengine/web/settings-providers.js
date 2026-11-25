@@ -15,7 +15,13 @@ const STATUS = {
   blocked: "Blocked by privacy setting", unassigned: "Not set", credential_unavailable: "Key unavailable. Replace the key.",
   unsupported: "This model can't do this job.",
 };
-const LOCAL_NOTE = "Treated as your own machine: code is sent here without asking.";
+const LOCAL_NOTE = "Use localhost or a private LAN/VPN IP address. Treated as your own machine: code is sent here without asking.";
+
+const PROVIDER_ERRORS = {
+  local_endpoint_required: "Use localhost or a private LAN/VPN IP address, not a public IP or hostname.",
+  coding_check_in_progress: "Wait for the current coding test to finish before changing or removing this provider.",
+  execution_test_reconciliation_required: "Resolve the previous coding test under Advanced before continuing.",
+};
 
 function labelled(tag, label, type) {
   const control = el(tag);
@@ -63,7 +69,11 @@ export function createProvidersSection({ request, advanced = () => ({}), pollMs 
   const more = el("details", undefined, "existing-app");
   element.append(providerCard, jobsCard, message, more);
 
-  const fail = (error) => { message.textContent = error?.message ?? String(error); };
+  const fail = (error) => {
+    message.textContent = Object.hasOwn(PROVIDER_ERRORS, error?.code)
+      ? PROVIDER_ERRORS[error.code]
+      : (error?.message ?? String(error));
+  };
 
   function renderProviders() {
     list.replaceChildren();

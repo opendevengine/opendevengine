@@ -85,8 +85,12 @@ Settings → AI providers. Add the providers you use:
 - **Claude**: an Anthropic API key, or your `claude` CLI login (Pro or Max).
 - **Codex (OpenAI)**: an OpenAI API key; the API URL is editable.
 - **Local models**: an Ollama or OpenAI-compatible server (LM Studio, vLLM, llama.cpp) by URL,
-  on this computer or another machine you own. A Local URL is treated as your own machine:
-  code is sent there without asking.
+  on this computer or another machine you own. Use localhost or a literal private
+  network IP address, including Tailscale. Public IPs and DNS hostnames are not
+  trusted as Local providers. Code is sent to trusted local endpoints without asking.
+  Previously saved public endpoints must be reconfigured; they no longer receive
+  local-only trust. Private addressing does not guarantee that a server performs
+  inference locally.
 
 Adding Claude or Codex asks once for permission to send parts of your code to Anthropic or
 OpenAI, and turns off **Keep everything on this computer**. Turning that back on in Settings →

@@ -6,13 +6,21 @@ All notable user-visible changes are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- Provider creation preserves privacy preferences and cleans up staged credentials on failure.
+- API-key rotation updates linked model and execution profiles atomically.
+- Provider deletion retires linked profiles, credentials and queued checks atomically.
+- Running coding checks cannot be invalidated by credential rotation or provider deletion.
+- Public endpoints cannot acquire local-only trust through Local provider registration
+  or previously saved configuration.
+
 ### Changed
 - **Settings → AI providers** replaces Models and Coding agent: add Claude (API key or
   `claude` login), Codex (OpenAI API key) or Local models (Ollama or OpenAI-compatible URL),
   then choose a provider for Plans & answers, Coding and Code search. Choosing Claude for
   Coding sets up and tests the coding environment automatically. Adding Claude or Codex asks
-  once to allow sending code; a Local URL is trusted as your own machine. Older profiles stay
-  under Advanced.
+  once to allow sending code; Local providers require localhost or a private LAN/VPN
+  IP address. Older profiles stay under Advanced.
 - **Validation checks need your approval:** a check runs only if you ticked "Run this check"
   in the plan. Checks from the model start unapproved; unapproved checks are skipped and
   shown as skipped, and a session with skipped checks is never published automatically.
