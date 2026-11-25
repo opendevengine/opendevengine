@@ -273,6 +273,21 @@ class ProfileTests(unittest.TestCase):
         finally:
             thread.join(2)
 
+    def test_api_key_mode_requires_secret_ref(self):
+        self.code('validation', lambda: self.create(auth_mode='api_key'))
+
+    def test_cli_login_rejects_secret_ref(self):
+        self.code('validation', lambda: self.create(secret_ref='ref'))
+
+    def test_public_version_hides_secret_ref(self):
+        with self.platform.store.transaction() as db:
+            db.execute("INSERT INTO secret_refs VALUES('ref-x','memory','provider_api_key','coding',1,NULL)")
+        profile = self.create(auth_mode='api_key', secret_ref='ref-x')
+        self.assertIs(profile['version']['has_secret'], True)
+        self.assertNotIn('ref-x', json.dumps(profile))
+        self.assertNotIn('secret_ref', json.dumps(self.service.get(profile['id'])))
+        self.assertEqual(self.service.get_version(profile['active_version_id'])['auth_mode'], 'api_key')
+
     def test_immutable_versions_soft_delete_history_and_restart(self):
         first = self.create()
         second = self.service.update(first['id'], {'name': 'Renamed', 'image': 'other:cached'})
@@ -341,7 +356,7 @@ class ProfileTests(unittest.TestCase):
     def test_validation_rejects_credentials_paths_flags_and_unsupported_auth(self):
         for key in ('executable', 'environment', 'mounts', 'docker_args', 'secret_value', 'token', 'capabilities'):
             self.code('validation', lambda: self.service.create(self.spec(**{key: PRIVATE})))
-        for field, value in (('auth_mode', 'api_key'), ('adapter', 'other')):
+        for field, value in (('auth_mode', 'oauth_token'), ('adapter', 'other')):
             self.code('unsupported', lambda: self.service.create(self.spec(**{field: value})))
         for change in ({'allow_external_source': 1}, {'image': '/host/image'}, {'name': '\x00'},
                        {'image': 'https://user:secret@host?key=private'}):
@@ -431,6 +446,19 @@ class ProfileTests(unittest.TestCase):
         for private in (PRIVATE, CONTAINER, 'private_runtime', 'harness_pid', 'socket_path'):
             self.assertNotIn(private, serialized)
         self.assertNotIn(PRIVATE, json.dumps(self.private_result()))
+
+    def test_profile_test_passes_vault_key_only_in_api_key_mode(self):
+        from types import SimpleNamespace
+        from opendevengine.platform.secrets import SecretValue
+        with self.platform.store.transaction() as db:
+            db.execute("INSERT INTO secret_refs VALUES('ref-k','memory','provider_api_key','coding',1,NULL)")
+        self.providers.secrets = SimpleNamespace(resolve=lambda ref: SecretValue('sk-vault-' + ref))
+        self.create(auth_mode='api_key', secret_ref='ref-k'); self.request(); self.work()
+        self.assertEqual(self.adapter.kwargs['api_key'], 'sk-vault-ref-k')
+        self.assertEqual(self.adapter.kwargs['auth_mode'], 'api_key')
+        self.assertNotIn('sk-vault', json.dumps(self.result()) + json.dumps(self.private_result()))
+        self.create(name='Login'); self.request(); self.work()
+        self.assertIsNone(self.adapter.kwargs['api_key'])
 
     def test_profile_test_passes_the_chosen_model_and_legacy_versions_pass_none(self):
         self.create(agent_model='sonnet'); self.request(); self.work()

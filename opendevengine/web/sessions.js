@@ -203,7 +203,7 @@ const PUBLICATION_TEXT = {
   capability_missing: "OpenDevEngine's GitHub App lacks a permission this needs. It needs Contents and Pull requests write access.",
   repository_unavailable: "The repository isn't available to OpenDevEngine's GitHub App.",
 };
-const publicationFix = code => code === 'publication_identity_required' ? ['Set the pull request author in Settings', '#/settings/agent'] : /permission|^auth$|^capability_missing$|^repository_unavailable$/.test(code) ? ['Review GitHub access in Settings', '#/settings/github'] : null;
+const publicationFix = code => code === 'publication_identity_required' ? ['Set the pull request author in Settings', '#/settings/providers'] : /permission|^auth$|^capability_missing$|^repository_unavailable$/.test(code) ? ['Review GitHub access in Settings', '#/settings/github'] : null;
 function explainCode(parent, code, fallback) {
   const known = /^[a-z_]{1,80}$/.test(code || '') ? code : null;
   parent.append(el('p', (known && PUBLICATION_TEXT[known]) || fallback || `Publishing stopped: ${human(known || 'unknown')}.`));

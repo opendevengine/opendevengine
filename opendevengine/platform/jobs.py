@@ -234,14 +234,18 @@ class JobQueue:
 
     def cancel(self, job_id):
         with self.store.transaction() as conn:
-            row = self._row(conn, job_id)
-            if row['state'] == 'needs_reconciliation':
-                raise InvalidTransition('Reconcile the job before cancellation.')
-            if row['state'] in TERMINAL:
-                return job_from(row)
-            if row['state'] == 'leased':
-                return self._update(conn, job_id, cancel_requested=1)
-            return self._finish(conn, job_id, 'cancelled')
+            return self.cancel_in_transaction(conn, job_id)
+
+    def cancel_in_transaction(self, conn, job_id):
+        row = self._row(conn, job_id)
+        if row['state'] == 'needs_reconciliation':
+            raise InvalidTransition('Reconcile the job before cancellation.')
+        if row['state'] in TERMINAL:
+            return job_from(row)
+        if row['state'] == 'leased':
+            return self._update(conn, job_id, cancel_requested=1)
+        return self._finish(conn, job_id, 'cancelled')
+
 
     def resolve_reconciliation(self, job_id, *, outcome):
         with self.store.transaction() as conn:

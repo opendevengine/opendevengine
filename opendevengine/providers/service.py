@@ -282,36 +282,9 @@ class ProviderService:
         conflict = False
         try:
             with self.store.transaction() as conn:
-                profile = self._profile_row(conn, profile_id)
-                if profile['deleted_at'] is not None:
-                    raise ProfileDeleted()
-                current = self._version_row(conn, profile['active_version_id'])
-                merged = {'adapter': changes.get('adapter', current['adapter']),
-                          'endpoint': changes.get('endpoint', current['endpoint']),
-                          'model': changes.get('model', current['model']),
-                          'config': changes.get('config', json.loads(current['config']))}
-                self._validate_adapter_endpoint(merged, secret_value)
-                now = self.clock()
-                version_changed = new_ref is not None or any(
-                    merged[key] != (json.loads(current['config']) if key == 'config' else current[key])
-                    for key in merged)
-                active_version_id = profile['active_version_id']
-                if version_changed:
-                    active_version_id = new_id('pver')
-                    number = conn.execute('SELECT max(version) FROM provider_profile_versions WHERE profile_id=?',
-                                          (profile_id,)).fetchone()[0] + 1
-                    ref = new_ref if new_ref is not None else current['secret_ref']
-                    if new_ref is not None:
-                        old_ref = current['secret_ref']
-                        if old_ref is not None:
-                            self._mark_owned_refs_revoked(conn, profile_id, now, ref_id=old_ref)
-                    conn.execute('INSERT INTO provider_profile_versions VALUES (?,?,?,?,?,?,?,?,?)',
-                                 (active_version_id, profile_id, number, merged['adapter'], merged['endpoint'],
-                                  merged['model'], ref, canonical_json(merged['config']), now))
-                if version_changed or ('name' in changes and changes['name'] != profile['name']):
-                    conn.execute('UPDATE provider_profiles SET name=?, active_version_id=?, updated_at=? WHERE id=?',
-                                 (changes.get('name', profile['name']), active_version_id, now, profile_id))
-                result = self._profile_public(conn, self._profile_row(conn, profile_id))
+                result, old_ref = self._update_profile_in_transaction(
+                    conn, profile_id, changes,
+                    secret_value=secret_value, new_ref=new_ref)
         except sqlite3.IntegrityError:
             conflict = True
         except BaseException:
@@ -327,23 +300,80 @@ class ProviderService:
             self._revoke_quietly(old_ref)
         return result
 
+    def _update_profile_in_transaction(
+        self, conn, profile_id, changes, *,
+        secret_value=None, new_ref=None
+    ):
+        old_ref = None
+        profile = self._profile_row(conn, profile_id)
+        if profile['deleted_at'] is not None:
+            raise ProfileDeleted()
+        current = self._version_row(conn, profile['active_version_id'])
+        merged = {'adapter': changes.get('adapter', current['adapter']),
+                  'endpoint': changes.get('endpoint', current['endpoint']),
+                  'model': changes.get('model', current['model']),
+                  'config': changes.get('config', json.loads(current['config']))}
+        self._validate_adapter_endpoint(merged, secret_value)
+        now = self.clock()
+        version_changed = new_ref is not None or any(
+            merged[key] != (json.loads(current['config']) if key == 'config' else current[key])
+            for key in merged)
+        active_version_id = profile['active_version_id']
+        if version_changed:
+            active_version_id = new_id('pver')
+            number = conn.execute('SELECT max(version) FROM provider_profile_versions WHERE profile_id=?',
+                                  (profile_id,)).fetchone()[0] + 1
+            ref = new_ref if new_ref is not None else current['secret_ref']
+            if new_ref is not None:
+                old_ref = current['secret_ref']
+                if old_ref is not None:
+                    self._mark_owned_refs_revoked(conn, profile_id, now, ref_id=old_ref)
+            conn.execute('INSERT INTO provider_profile_versions VALUES (?,?,?,?,?,?,?,?,?)',
+                         (active_version_id, profile_id, number, merged['adapter'], merged['endpoint'],
+                          merged['model'], ref, canonical_json(merged['config']), now))
+        if version_changed or ('name' in changes and changes['name'] != profile['name']):
+            conn.execute('UPDATE provider_profiles SET name=?, active_version_id=?, updated_at=? WHERE id=?',
+                         (changes.get('name', profile['name']), active_version_id, now, profile_id))
+        result = self._profile_public(conn, self._profile_row(conn, profile_id))
+        return result, old_ref
+
     @_storage_boundary
     def delete_profile(self, profile_id):
         with self.store.transaction() as conn:
-            profile = self._profile_row(conn, profile_id)
-            now = self.clock()
-            if profile['deleted_at'] is None:
-                conn.execute('UPDATE provider_profiles SET deleted_at=?, updated_at=? WHERE id=?',
-                             (now, now, profile_id))
-            conn.execute('DELETE FROM model_role_assignments WHERE profile_id=?', (profile_id,))
-            refs = [r[0] for r in conn.execute(
-                'SELECT DISTINCT secret_ref FROM provider_profile_versions WHERE profile_id=? AND secret_ref IS NOT NULL',
-                (profile_id,))]
-            self._mark_owned_refs_revoked(conn, profile_id, now)
+            refs = self._delete_profile_in_transaction(
+                conn, profile_id)
+
         for ref_id in refs:
             self._revoke_quietly(ref_id)
+
         with self.store.read() as conn:
-            return self._profile_public(conn, self._profile_row(conn, profile_id))
+            return self._profile_public(
+                conn, self._profile_row(conn, profile_id))
+
+    def _delete_profile_in_transaction(self, conn, profile_id):
+        profile = self._profile_row(conn, profile_id)
+        now = self.clock()
+
+        if profile['deleted_at'] is None:
+            conn.execute(
+                'UPDATE provider_profiles '
+                'SET deleted_at=?, updated_at=? WHERE id=?',
+                (now, now, profile_id))
+
+        conn.execute(
+            'DELETE FROM model_role_assignments WHERE profile_id=?',
+            (profile_id,))
+
+        refs = [
+            r[0] for r in conn.execute(
+                'SELECT DISTINCT secret_ref '
+                'FROM provider_profile_versions '
+                'WHERE profile_id=? AND secret_ref IS NOT NULL',
+                (profile_id,))
+        ]
+
+        self._mark_owned_refs_revoked(conn, profile_id, now)
+        return refs
 
     @_storage_boundary
     def list_profiles(self):
@@ -362,22 +392,34 @@ class ProviderService:
     @_storage_boundary
     def assign_role(self, role, profile_id):
         role = validate_role(role)
+        return self.assign_roles({role: profile_id})[role]
+
+    @_storage_boundary
+    def assign_roles(self, assignments):
+        """Apply several role assignments in one transaction: all of them or none."""
+        if not isinstance(assignments, dict) or not 1 <= len(assignments) <= len(ROLES):
+            raise fail('assignments')
+        assignments = {validate_role(role): profile_id for role, profile_id in assignments.items()}
         with self.store.transaction() as conn:
-            if profile_id is None:
-                conn.execute('DELETE FROM model_role_assignments WHERE role=?', (role,))
-            else:
-                profile = self._profile_row(conn, profile_id)
-                if profile['deleted_at'] is not None:
-                    raise ProfileDeleted()
-                version = self._version_row(conn, profile['active_version_id'])
-                if _REQUIRED_ROLE_CAPABILITY[role] not in json.loads(version['config'])['capabilities']:
-                    raise UnsupportedCapability(detail={'capability': _REQUIRED_ROLE_CAPABILITY[role]})
-                if self._persisted_local_only(conn) and destination_for(version['endpoint'])['kind'] != 'local':
-                    raise DestinationNotAllowed()
-                conn.execute('INSERT INTO model_role_assignments VALUES (?,?,?) '
-                             'ON CONFLICT(role) DO UPDATE SET profile_id=excluded.profile_id, updated_at=excluded.updated_at',
-                             (role, profile_id, self.clock()))
-            return self._roles(conn)[role]
+            for role, profile_id in assignments.items():
+                self._assign(conn, role, profile_id)
+            return self._roles(conn)
+
+    def _assign(self, conn, role, profile_id):
+        if profile_id is None:
+            conn.execute('DELETE FROM model_role_assignments WHERE role=?', (role,))
+        else:
+            profile = self._profile_row(conn, profile_id)
+            if profile['deleted_at'] is not None:
+                raise ProfileDeleted()
+            version = self._version_row(conn, profile['active_version_id'])
+            if _REQUIRED_ROLE_CAPABILITY[role] not in json.loads(version['config'])['capabilities']:
+                raise UnsupportedCapability(detail={'capability': _REQUIRED_ROLE_CAPABILITY[role]})
+            if self._persisted_local_only(conn) and destination_for(version['endpoint'])['kind'] != 'local':
+                raise DestinationNotAllowed()
+            conn.execute('INSERT INTO model_role_assignments VALUES (?,?,?) '
+                         'ON CONFLICT(role) DO UPDATE SET profile_id=excluded.profile_id, updated_at=excluded.updated_at',
+                         (role, profile_id, self.clock()))
 
     def _roles(self, conn):
         local_only = self._persisted_local_only(conn)
@@ -420,12 +462,18 @@ class ProviderService:
 
     @_storage_boundary
     def update_settings(self, *, local_only):
-        validate_flag(local_only, 'local_only')
         with self.store.transaction() as conn:
-            conn.execute("INSERT INTO provider_settings VALUES ('local_only',?,?) "
-                         'ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at',
-                         (canonical_json(local_only), self.clock()))
-            return {'local_only': self._persisted_local_only(conn)}
+            return self._update_settings_in_transaction(
+                conn, local_only=local_only)
+
+    def _update_settings_in_transaction(self, conn, *, local_only):
+        validate_flag(local_only, 'local_only')
+        conn.execute(
+            "INSERT INTO provider_settings VALUES ('local_only',?,?) "
+            'ON CONFLICT(key) DO UPDATE SET '
+            'value=excluded.value, updated_at=excluded.updated_at',
+            (canonical_json(local_only), self.clock()))
+        return {'local_only': self._persisted_local_only(conn)}
 
     @_storage_boundary
     def status_summary(self):

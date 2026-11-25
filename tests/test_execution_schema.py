@@ -11,7 +11,7 @@ class ExecutionSchemaTests(TestCase):
         self.plan=plan
         with f.store.transaction() as c:
             c.execute("INSERT INTO execution_profiles(id,name,active_version_id,created_at,updated_at) VALUES('ep','Personal CLI','epv',1,1)")
-            c.execute("INSERT INTO execution_profile_versions VALUES('epv','ep',1,'claude_code','cli_login','{}',1)")
+            c.execute("INSERT INTO execution_profile_versions(id,profile_id,version,adapter,auth_mode,config_json,created_at) VALUES('epv','ep',1,'claude_code','cli_login','{}',1)")
             c.execute("INSERT INTO sessions(id,plan_id,plan_version_id,content_hash,profile_version_id,idempotency_key,launch_hash,attempt,state,created_at,updated_at) VALUES('ses',?,?,?,'epv','unique-launch','intent',1,'queued',1,1)",(plan['id'],plan['version']['id'],plan['version']['content_hash']))
 
     def test_source_purge_is_not_prevented_by_historical_session_snapshot_reference(self):

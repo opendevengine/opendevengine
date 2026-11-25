@@ -51,7 +51,8 @@ _PROBE_CODES = frozenset({
     'isolation_unverified', 'not_running', 'not_found', 'unsafe_path', 'discard_failed',
 })
 _FIELDS = frozenset({'name', 'adapter', 'auth_mode', 'image', 'allow_external_source',
-                     'runner_limits', 'agent_limits', 'agent_model'})
+                     'runner_limits', 'agent_limits', 'agent_model', 'secret_ref'})
+AUTH_MODES = ('cli_login', 'api_key')
 # Claude Code model alias or id (e.g. "sonnet", "opus", "claude-opus-5-5", "opus[1m]"); None uses the CLI default.
 AGENT_MODEL = re.compile(r'[A-Za-z0-9][A-Za-z0-9._:\-\[\]]{0,79}')
 _FIXTURE = {'calc.sh': b'#!/bin/sh\nprintf "%s\\n" "$(($1 - $2))"\n'}
@@ -77,6 +78,10 @@ class ExecutionProfileError(PlatformError):
 
 def _error(code):
     raise ExecutionProfileError(code)
+
+
+_INSERT_VERSION = ('INSERT INTO execution_profile_versions'
+                   '(id,profile_id,version,adapter,auth_mode,config_json,created_at,secret_ref) VALUES(?,?,?,?,?,?,?,?)')
 
 
 def _json(value):
@@ -106,8 +111,13 @@ def _validate(spec):
     if (not isinstance(name, str) or not name.strip() or len(name.encode('utf-8', 'surrogatepass')) > 100
             or any(not char.isprintable() for char in name)):
         _error('validation')
-    if spec['adapter'] != 'claude_code' or spec['auth_mode'] != 'cli_login':
+    if spec['adapter'] != 'claude_code' or spec['auth_mode'] not in AUTH_MODES:
         _error('unsupported')
+    # An API-key version names the vault reference holding its key; a CLI login never does.
+    secret_ref = spec.get('secret_ref')
+    if (spec['auth_mode'] == 'api_key') != (secret_ref is not None) or (
+            secret_ref is not None and (not isinstance(secret_ref, str) or not 0 < len(secret_ref) <= 100)):
+        _error('validation')
     image = spec['image']
     if not _valid_image(image):
         _error('validation')
@@ -135,8 +145,8 @@ def _validate(spec):
     if (isinstance(budget, bool) or not isinstance(budget, (int, float))
             or not math.isfinite(budget) or not 0 < budget <= 10):
         _error('validation')
-    return {'name': name.strip(), 'adapter': 'claude_code', 'auth_mode': 'cli_login',
-            'config': {'image': image, 'allow_external_source': consent,
+    return {'name': name.strip(), 'adapter': 'claude_code', 'auth_mode': spec['auth_mode'],
+            'secret_ref': secret_ref, 'config': {'image': image, 'allow_external_source': consent,
                        'runner_limits': limits, 'agent_limits': agent, 'agent_model': model}}
 
 
@@ -196,11 +206,11 @@ class ExecutionProfileService:
         # in flight. Do not duplicate its private runtime/job recovery record. Any
         # intervening executable/source/limit change breaks the inheritance chain.
         for candidate in db.execute(
-                'SELECT v.adapter,v.auth_mode,v.config_json,c.* FROM execution_profile_versions v '
+                'SELECT v.adapter,v.auth_mode,v.config_json,v.secret_ref,c.* FROM execution_profile_versions v '
                 'LEFT JOIN execution_profile_checks c ON c.version_id=v.id '
                 'WHERE v.profile_id=? AND v.version<=? ORDER BY v.version DESC',
                 (version['profile_id'], version['version'])):
-            if any(candidate[key] != version[key] for key in ('adapter', 'auth_mode', 'config_json')):
+            if any(candidate[key] != version[key] for key in ('adapter', 'auth_mode', 'config_json', 'secret_ref')):
                 break
             if candidate['version_id'] is not None:
                 row = candidate
@@ -223,7 +233,7 @@ class ExecutionProfileService:
     def _version(self, db, row):
         profile = self._row(db, 'execution_profiles', row['profile_id'])
         return {'id': row['id'], 'profile_id': row['profile_id'], 'version': row['version'],
-                'adapter': row['adapter'], 'auth_mode': row['auth_mode'],
+                'adapter': row['adapter'], 'auth_mode': row['auth_mode'], 'has_secret': row['secret_ref'] is not None,
                 'config': json.loads(row['config_json']), 'created_at': row['created_at'],
                 'profile_deleted': profile['deleted_at'] is not None, 'check': self._check(db, row['id'])}
 
@@ -234,14 +244,16 @@ class ExecutionProfileService:
                 'created_at': row['created_at'], 'updated_at': row['updated_at']}
 
     @_storage_boundary
-    def create(self, spec):
+    def create(self, spec, *, managed=False):
         spec = _validate(spec)
+        if type(managed) is not bool:
+            _error('validation')
         profile_id, version_id, now = new_id('exec'), new_id('ever'), self.clock()
         with self.store.transaction() as db:
-            db.execute('INSERT INTO execution_profiles VALUES(?,?,?,NULL,?,?)',
-                       (profile_id, spec['name'], version_id, now, now))
-            db.execute('INSERT INTO execution_profile_versions VALUES(?,?,1,?,?,?,?)',
-                       (version_id, profile_id, spec['adapter'], spec['auth_mode'], _json(spec['config']), now))
+            db.execute('INSERT INTO execution_profiles(id,name,active_version_id,deleted_at,created_at,updated_at,managed) '
+                       'VALUES(?,?,?,NULL,?,?,?)', (profile_id, spec['name'], version_id, now, now, int(managed)))
+            db.execute(_INSERT_VERSION, (version_id, profile_id, 1, spec['adapter'], spec['auth_mode'],
+                                         _json(spec['config']), now, spec['secret_ref']))
             return self._public(db, self._row(db, 'execution_profiles', profile_id))
 
     @_storage_boundary
@@ -249,28 +261,35 @@ class ExecutionProfileService:
         if not isinstance(changes, dict) or not changes or set(changes) - _FIELDS:
             _error('validation')
         with self.store.transaction() as db:
-            row = self._row(db, 'execution_profiles', ident)
-            if row['deleted_at'] is not None:
-                _error('execution_profile_deleted')
-            previous = self._row(db, 'execution_profile_versions', row['active_version_id'])
-            values = {'name': row['name'], 'adapter': previous['adapter'], 'auth_mode': previous['auth_mode'],
-                      **json.loads(previous['config_json']), **changes}
-            spec, version_id, now = _validate(values), new_id('ever'), self.clock()
-            db.execute('INSERT INTO execution_profile_versions VALUES(?,?,?,?,?,?,?)',
-                       (version_id, ident, previous['version'] + 1, spec['adapter'], spec['auth_mode'],
-                        _json(spec['config']), now))
-            db.execute('UPDATE execution_profiles SET name=?,active_version_id=?,updated_at=? WHERE id=?',
-                       (spec['name'], version_id, now, ident))
-            return self._public(db, self._row(db, 'execution_profiles', ident))
+            return self._update_in_transaction(db, ident, changes)
+
+    def _update_in_transaction(self, db, ident, changes):
+        row = self._row(db, 'execution_profiles', ident)
+        if row['deleted_at'] is not None:
+            _error('execution_profile_deleted')
+        previous = self._row(db, 'execution_profile_versions', row['active_version_id'])
+        values = {'name': row['name'], 'adapter': previous['adapter'], 'auth_mode': previous['auth_mode'],
+                  **({'secret_ref': previous['secret_ref']} if previous['secret_ref'] else {}),
+                  **json.loads(previous['config_json']), **changes}
+        spec, version_id, now = _validate(values), new_id('ever'), self.clock()
+        db.execute(_INSERT_VERSION, (version_id, ident, previous['version'] + 1, spec['adapter'], spec['auth_mode'],
+                                     _json(spec['config']), now, spec['secret_ref']))
+        db.execute('UPDATE execution_profiles SET name=?,active_version_id=?,updated_at=? WHERE id=?',
+                   (spec['name'], version_id, now, ident))
+        return self._public(db, self._row(db, 'execution_profiles', ident))
+
 
     @_storage_boundary
     def delete(self, ident):
         with self.store.transaction() as db:
-            row = self._row(db, 'execution_profiles', ident)
-            if row['deleted_at'] is None:
-                now = self.clock()
-                db.execute('UPDATE execution_profiles SET deleted_at=?,updated_at=? WHERE id=?', (now, now, ident))
-            return self._public(db, self._row(db, 'execution_profiles', ident))
+            return self._delete_in_transaction(db, ident)
+
+    def _delete_in_transaction(self, db, ident):
+        row = self._row(db, 'execution_profiles', ident)
+        if row['deleted_at'] is None:
+            now = self.clock()
+            db.execute('UPDATE execution_profiles SET deleted_at=?,updated_at=? WHERE id=?', (now, now, ident))
+        return self._public(db, self._row(db, 'execution_profiles', ident))
 
     @_storage_boundary
     def get(self, ident):
@@ -282,10 +301,33 @@ class ExecutionProfileService:
         with self.store.read() as db:
             return self._version(db, self._row(db, 'execution_profile_versions', version_id))
 
+    def version_api_key(self, version_id):
+        """The vault key an api_key version runs with, resolved right before launch; None for CLI login."""
+        with self.store.read() as db:
+            ref = self._row(db, 'execution_profile_versions', version_id)['secret_ref']
+        if ref is None:
+            return None
+        secrets = getattr(self.providers, 'secrets', None)
+        try:
+            if secrets is None:
+                raise PlatformError('Credential storage is unavailable.')
+            return secrets.resolve(ref).reveal()
+        except PlatformError:
+            pass
+        _error('execution_credential_unavailable')
+
     @_storage_boundary
     def default_profile_id(self):
-        """Select only a unique live profile whose active version passed its check."""
+        """The live managed profile when it passed; otherwise a unique live passing profile.
+
+        A live managed profile that has not passed (yet) means no default: the user chose it.
+        """
         with self.store.read() as db:
+            managed = db.execute('SELECT id,active_version_id FROM execution_profiles '
+                                 'WHERE deleted_at IS NULL AND managed=1').fetchone()
+            if managed is not None:
+                check = self._check(db, managed['active_version_id'])
+                return managed['id'] if check and check['status'] == 'passed' else None
             passed = []
             for row in db.execute('SELECT id,active_version_id FROM execution_profiles WHERE deleted_at IS NULL'):
                 check = self._check(db, row['active_version_id'])
@@ -376,33 +418,37 @@ class ExecutionProfileService:
     @_storage_boundary
     def request_test(self, profile_id):
         with self.store.transaction() as db:
-            profile = self._row(db, 'execution_profiles', profile_id)
-            if profile['deleted_at'] is not None:
-                _error('execution_profile_deleted')
-            version = self._version(db, self._row(db, 'execution_profile_versions', profile['active_version_id']))
-            self._policy(version, synthetic=True)
-            for previous in db.execute('SELECT c.result_json,c.error_code FROM execution_profile_checks c '
-                                       'JOIN execution_profile_versions v ON v.id=c.version_id WHERE v.profile_id=?',
-                                       (profile_id,)):
-                if previous['error_code'] == 'containment_unverified':
-                    _error('execution_test_reconciliation_required')
-            active = db.execute('SELECT c.version_id,c.job_id,j.state,j.lease_expires_at FROM execution_profile_checks c '
-                                'JOIN execution_profile_versions v ON v.id=c.version_id '
-                                'JOIN jobs j ON j.id=c.job_id WHERE v.profile_id=? '
-                                "AND j.state IN ('queued','leased','needs_reconciliation') ORDER BY j.created_at DESC",
-                                (profile_id,)).fetchall()
-            for row in active:
-                if (row['state'] == 'needs_reconciliation' or row['state'] == 'leased'
-                        and row['lease_expires_at'] <= self.clock()):
-                    _error('execution_test_reconciliation_required')
-                return {'job_id': row['job_id'], 'version_id': row['version_id'], 'status': 'queued'
-                        if row['state'] == 'queued' else 'running'}
-            job = self.jobs.enqueue_in_transaction(db, 'execution.test', {'version_id': version['id']},
-                                                   effect='external', max_attempts=1)
-            db.execute("INSERT INTO execution_profile_checks VALUES(?,?,'queued','{}',NULL,NULL) "
-                       "ON CONFLICT(version_id) DO UPDATE SET job_id=excluded.job_id,status='queued',"
-                       "result_json='{}',error_code=NULL,checked_at=NULL", (version['id'], job.id))
-            return {'job_id': job.id, 'version_id': version['id'], 'status': 'queued'}
+            return self._request_test_in_transaction(db, profile_id)
+
+    def _request_test_in_transaction(self, db, profile_id):
+        profile = self._row(db, 'execution_profiles', profile_id)
+        if profile['deleted_at'] is not None:
+            _error('execution_profile_deleted')
+        version = self._version(db, self._row(db, 'execution_profile_versions', profile['active_version_id']))
+        self._policy(version, synthetic=True)
+        for previous in db.execute('SELECT c.result_json,c.error_code FROM execution_profile_checks c '
+                                   'JOIN execution_profile_versions v ON v.id=c.version_id WHERE v.profile_id=?',
+                                   (profile_id,)):
+            if previous['error_code'] == 'containment_unverified':
+                _error('execution_test_reconciliation_required')
+        active = db.execute('SELECT c.version_id,c.job_id,j.state,j.lease_expires_at FROM execution_profile_checks c '
+                            'JOIN execution_profile_versions v ON v.id=c.version_id '
+                            'JOIN jobs j ON j.id=c.job_id WHERE v.profile_id=? '
+                            "AND j.state IN ('queued','leased','needs_reconciliation') ORDER BY j.created_at DESC",
+                            (profile_id,)).fetchall()
+        for row in active:
+            if (row['state'] == 'needs_reconciliation' or row['state'] == 'leased'
+                    and row['lease_expires_at'] <= self.clock()):
+                _error('execution_test_reconciliation_required')
+            return {'job_id': row['job_id'], 'version_id': row['version_id'], 'status': 'queued'
+                    if row['state'] == 'queued' else 'running'}
+        job = self.jobs.enqueue_in_transaction(db, 'execution.test', {'version_id': version['id']},
+                                               effect='external', max_attempts=1)
+        db.execute("INSERT INTO execution_profile_checks VALUES(?,?,'queued','{}',NULL,NULL) "
+                   "ON CONFLICT(version_id) DO UPDATE SET job_id=excluded.job_id,status='queued',"
+                   "result_json='{}',error_code=NULL,checked_at=NULL", (version['id'], job.id))
+        return {'job_id': job.id, 'version_id': version['id'], 'status': 'queued'}
+
 
     def _owned_test(self, db, job, context, *, allow_stopped=False):
         lease = context.lease
@@ -606,7 +652,8 @@ class ExecutionProfileService:
                 harness_confirmed = False
                 try:
                     result = adapter.run(
-                        endpoint, _PROMPT, auth_mode=version['auth_mode'], synthetic=True,
+                        endpoint, _PROMPT, auth_mode=version['auth_mode'], api_key=self.version_api_key(version['id']),
+                        synthetic=True,
                         local_only=False, external_source_consent=False,
                         on_inventory_verified=inventory_ready, emit=lambda *_: None,
                         stop_event=stop, on_started=started,

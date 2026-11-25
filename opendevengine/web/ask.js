@@ -377,7 +377,7 @@ export async function createAskPanel({host, request = http, onMount = () => {}, 
       .filter(([, role]) => settings?.roles?.[role]?.status === 'unassigned');
     composer.setUnavailable(missing.map(([intent]) => intent), {
       message: `No model is set for ${missing.map(([, , words]) => words).join(' or ')}.`,
-      link: {text: 'Choose a model in Settings', href: '#/settings/models'},
+      link: {text: 'Choose a model in Settings', href: '#/settings/providers'},
     });
   }
   function landing() {

@@ -81,6 +81,37 @@ class ProviderTests(unittest.TestCase):
         self.assertEqual(expected, caught.exception.code)
         self.assertNotIn('private synthetic input', str(caught.exception))
         return caught.exception
+    def test_assign_roles_sets_several(self):
+        p = self.profile()
+        roles = self.service.assign_roles({'ask': p['id'], 'planning': p['id'], 'summary': p['id']})
+        self.assertEqual({roles[r]['profile_id'] for r in ('ask', 'planning', 'summary')}, {p['id']})
+
+    def test_assign_roles_is_all_or_nothing(self):
+        chat = self.profile()
+        embedding_only = self.profile(name='embed', config={'capabilities': ['embeddings'], 'embedding_dimensions': 2})
+        self.service.assign_roles({'ask': chat['id']})
+        other = self.profile(name='other')
+        with self.assertRaises(ProviderError):
+            self.service.assign_roles({'ask': other['id'], 'planning': embedding_only['id']})
+        self.assertEqual(self.service.roles()['ask']['profile_id'], chat['id'])
+        self.assertIsNone(self.service.roles()['planning']['profile_id'])
+
+    def test_trusted_host_is_local(self):
+        from opendevengine.providers import validation
+        self.addCleanup(validation.set_trusted_endpoints, [])
+        self.assertEqual(validation.destination_for('http://100.64.0.9:1234/v1')['kind'], 'remote')
+        validation.set_trusted_endpoints(['http://100.64.0.9:1234', 'http://192.168.1.20:1234/v1'])
+        self.assertEqual(validation.destination_for('http://100.64.0.9:1234/v1')['kind'], 'local')
+        self.assertEqual(validation.destination_for('http://192.168.1.20:1234/v1')['kind'], 'local')
+        self.assertEqual(validation.validate_endpoint('http://192.168.1.20:1234/v1'), 'http://192.168.1.20:1234/v1')
+
+    def test_trusted_hosts_are_reference_counted(self):
+        from opendevengine.providers import validation
+        self.addCleanup(validation.set_trusted_endpoints, [])
+        validation.set_trusted_endpoints(['http://100.64.0.9:1234'])
+        validation.set_trusted_endpoints([])
+        self.assertEqual(validation.destination_for('http://100.64.0.9:1234/v1')['kind'], 'remote')
+
     def test_versions_roles_and_restart(self):
         p = self.assign()
         old = copy.deepcopy(self.service.get_version(p['active_version_id']))

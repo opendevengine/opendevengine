@@ -2,7 +2,7 @@
 import json
 from urllib.parse import urlsplit
 from .transport import TransportFailure, TransportRequest
-from .validation import is_local_host, ollama_url
+from .validation import is_local_host, is_trusted_endpoint, ollama_url
 EMBEDDING_FAMILIES = {'bert', 'nomic-bert'}
 
 
@@ -12,7 +12,7 @@ def _base(base_url):
     if not isinstance(base_url, str) or len(base_url) > 200:
         raise ValueError('Invalid discovery address.')
     parts = urlsplit(base_url)
-    if parts.scheme not in ('http', 'https') or not is_local_host(parts.hostname or '') \
+    if parts.scheme not in ('http', 'https') or not (is_local_host(parts.hostname or '') or is_trusted_endpoint(base_url)) \
             or parts.path not in ('', '/') or parts.query or parts.fragment or parts.username:
         raise ValueError('Discovery is limited to a local Ollama address.')
     return base_url.rstrip('/')

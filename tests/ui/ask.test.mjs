@@ -51,7 +51,22 @@ test('real AskAPI plan edit, immutable history, exact source, export and conflic
   input(field('Question or planning request'),'How does mail delivery work?');button('Ask').click();await settle(30);
   const c=call(`/api/conversations/${seed.conversation.id}`).body;assert.equal(c.messages.filter(x=>x.role==='user').length,1);assert.equal(c.runs.length,1);
   button('Cancel').click();await settle(30);assert.equal(call(`/api/conversations/${seed.conversation.id}`).body.runs[0].state,'cancelled');
-  button('Retry').click();await settle(30);assert.equal(call(`/api/conversations/${seed.conversation.id}`).body.messages.filter(x=>x.role==='user').length,1);
+  // Wait for the cancelled state to reach the rendered conversation.
+  const retryDeadline = Date.now() + 5000;
+  while (!button('Retry') && Date.now() < retryDeadline) {
+    await settle(10);
+  }
+
+  assert.ok(button('Retry'),
+    `Retry missing after cancellation. UI: ${visibleText(panel)}`);
+
+  button('Retry').click();
+  await settle(30);
+
+  const retried = call(`/api/conversations/${seed.conversation.id}`).body;
+  assert.equal(retried.messages.filter(x=>x.role==='user').length,1);
+  assert.equal(retried.runs.length,1);
+  assert.equal(retried.runs[0].state,'queued');
   button('Cancel').click();await settle(30);
  } finally {rmSync(dir,{recursive:true,force:true});}
 });

@@ -316,7 +316,7 @@ export function createRepositoriesPage({ host, request, panel, shell }) {
       if (keywordOnly && !embedding?.version_id) {
         banner.append("Answers use keyword search only. ");
         const link = el("a", "Turn on smarter search");
-        link.setAttribute("href", "#/settings/models");
+        link.setAttribute("href", "#/settings/providers");
         banner.append(link);
       }
       const connection = (connections.connections || []).find((item) => item.status === "connected");

@@ -52,6 +52,8 @@ MIGRATIONS += (Migration(15, "session_purge_publication_fence", (
        WHEN json_extract((SELECT outcome_json FROM sessions WHERE id=NEW.session_id), '$.purged_at') IS NOT NULL
        BEGIN SELECT RAISE(ABORT, 'session_purged'); END""",
 )),)
+from .execution_schema import EXECUTION_V16_SQL
+MIGRATIONS += (Migration(16, "ai_providers", EXECUTION_V16_SQL, rebuild_tables=True),)
 LATEST_VERSION = MIGRATIONS[-1].version
 
 

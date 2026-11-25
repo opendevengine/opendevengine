@@ -63,7 +63,7 @@ test("one merged table with plain status, no hashes, and a keyword-only banner",
   assert.match(visibleText(row(host, "cube-workbench")), /No access/);
   assert.doesNotMatch(text, /[0-9a-f]{40}/);
   assert.match(text, /Answers use keyword search only\. Turn on smarter search/);
-  assert.ok(host.querySelectorAll("a").find((a) => a.getAttribute("href") === "#/settings/models"));
+  assert.ok(host.querySelectorAll("a").find((a) => a.getAttribute("href") === "#/settings/providers"));
   assert.match(text, /synced 5 min ago/);
   assert.deepEqual(host.querySelectorAll(".filter-chip").map((button) => button.textContent), ["All", "Used in Ask", "Changes allowed", "Needs attention"]);
   const region = host.querySelector(".repos-table-box");

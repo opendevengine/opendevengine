@@ -321,9 +321,9 @@ class ScriptedAgent:
 
     def run(self, endpoint, prompt, *, auth_mode, on_inventory_verified, emit, synthetic=False, local_only=True,
             external_source_consent=False, stop_event=None, on_started=None, timeout_seconds=180, max_turns=12,
-            max_budget_usd=1.0, max_output_bytes=524288, model=None):
+            max_budget_usd=1.0, max_output_bytes=524288, model=None, api_key=None):
         world = self.world
-        world.runs.append({'prompt': prompt, 'auth_mode': auth_mode, 'synthetic': synthetic, 'local_only': local_only,
+        world.runs.append({'prompt': prompt, 'auth_mode': auth_mode, 'api_key': api_key, 'synthetic': synthetic, 'local_only': local_only,
                            'consent': external_source_consent, 'timeout_seconds': timeout_seconds,
                            'max_turns': max_turns, 'max_budget_usd': max_budget_usd, 'stop_event': stop_event,
                            'model': model})
@@ -433,10 +433,10 @@ class FakeProfiles:
         """Write the frozen schema-9 rows the real producer owns (FK targets for sessions)."""
         import json as _json
         with self.store.transaction() as db:
-            db.execute("INSERT OR IGNORE INTO execution_profiles VALUES ('prof_1','synthetic',?,NULL,1,1)", (self.active,))
+            db.execute("INSERT OR IGNORE INTO execution_profiles(id,name,active_version_id,deleted_at,created_at,updated_at) VALUES ('prof_1','synthetic',?,NULL,1,1)", (self.active,))
             db.execute('UPDATE execution_profiles SET active_version_id=? WHERE id=?', (self.active, 'prof_1'))
             for ident, version in self.versions.items():
-                db.execute("INSERT OR IGNORE INTO execution_profile_versions VALUES (?,'prof_1',?,'claude_code','cli_login',?,1)",
+                db.execute("INSERT OR IGNORE INTO execution_profile_versions(id,profile_id,version,adapter,auth_mode,config_json,created_at) VALUES (?,'prof_1',?,'claude_code','cli_login',?,1)",
                            (ident, version['version'], _json.dumps(version['config'])))
                 db.execute("INSERT OR IGNORE INTO execution_profile_checks VALUES (?,NULL,'passed',?,NULL,1)",
                            (ident, _json.dumps(version['check'])))
@@ -460,6 +460,9 @@ class FakeProfiles:
         if version_id not in self.versions:
             raise ProfileError('not_found')
         return copy.deepcopy(self.versions[version_id])
+
+    def version_api_key(self, version_id):
+        return 'sk-fixture-coding-key' if self.versions[version_id]['auth_mode'] == 'api_key' else None
 
     def run_test(self, job, context):
         self.tests.append(job.id)

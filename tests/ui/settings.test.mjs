@@ -34,13 +34,15 @@ test("section navigation shows one section at a time", async () => {
   const { page, host } = await setup();
   const nav = host.querySelector("nav");
   assert.deepEqual(nav.querySelectorAll("a").map((a) => [a.textContent, a.getAttribute("href")]),
-    [["GitHub", "#/settings/github"], ["Models", "#/settings/models"], ["Coding agent", "#/settings/agent"], ["Privacy", "#/settings/privacy"], ["System health", "#/settings/health"]]);
+    [["GitHub", "#/settings/github"], ["AI providers", "#/settings/providers"], ["Privacy", "#/settings/privacy"], ["System health", "#/settings/health"]]);
   await page.show("health");
   assert.equal(nav.querySelector('a[aria-current="page"]').textContent, "System health");
   assert.match(visibleText(host), /Health cards/);
   assert.doesNotMatch(visibleText(host), /Existing GitHub controls/);
-  await page.show("agent");
-  assert.match(visibleText(host), /The coding agent isn't available in this build\./);
+  await page.show("providers");
+  assert.match(visibleText(host), /AI provider settings aren't available in this build\./);
+  await page.show("models");  // old links land on AI providers
+  assert.equal(nav.querySelector('a[aria-current="page"]').textContent, "AI providers");
 });
 
 test("GitHub callback status does not leak into other settings sections", async () => {

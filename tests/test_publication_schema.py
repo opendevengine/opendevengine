@@ -15,7 +15,7 @@ class PublicationSchemaTests(TestCase):
         with self.f.store.transaction() as db:
             db.execute("INSERT INTO execution_profiles(id,name,active_version_id,created_at,updated_at) "
                        "VALUES('ep','Personal CLI','epv',1,1)")
-            db.execute("INSERT INTO execution_profile_versions VALUES('epv','ep',1,'claude_code','cli_login','{}',1)")
+            db.execute("INSERT INTO execution_profile_versions(id,profile_id,version,adapter,auth_mode,config_json,created_at) VALUES('epv','ep',1,'claude_code','cli_login','{}',1)")
             db.execute("INSERT INTO sessions(id,plan_id,plan_version_id,content_hash,profile_version_id,idempotency_key,"
                        "launch_hash,attempt,state,created_at,updated_at) VALUES('ses',?,?,?,'epv','launch','intent',1,"
                        "'completed',1,1)", (plan['id'], plan['version']['id'], plan['version']['content_hash']))

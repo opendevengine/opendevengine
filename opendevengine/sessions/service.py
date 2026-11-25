@@ -55,6 +55,13 @@ _SHA_RE = re.compile(r'^(?:[0-9a-f]{40}|[0-9a-f]{64})$')
 DESTINATION = {'kind': 'remote', 'adapter': 'claude_code', 'auth_mode': 'cli_login',
                'disclosure': 'The approved plan and repository source read by tools are sent to the '
                              'Claude service through the installed Claude Code CLI login.'}
+API_KEY_DESTINATION = {**DESTINATION, 'auth_mode': 'api_key',
+                       'disclosure': 'The approved plan and repository source read by tools are sent to the '
+                                     'Claude service through Claude Code with your Anthropic API key.'}
+
+
+def _destination(auth_mode):
+    return dict(API_KEY_DESTINATION if auth_mode == 'api_key' else DESTINATION)
 
 
 def _ident(value, field='id'):
@@ -291,6 +298,11 @@ class SessionService:
         return {'available': True, 'reason': None}
 
     # ------------------------------------------------------------- preflight
+    def version_api_key(self, version_id):
+        """The API key a pinned api_key version runs with (resolved at launch, never stored); None otherwise."""
+        resolver = getattr(self.execution_profiles, 'version_api_key', None)
+        return resolver(version_id) if callable(resolver) else None
+
     def resolve_version(self, version_id):
         """Pinned immutable profile version with fresh revocable permission."""
         resolver = getattr(self.execution_profiles, 'require_version_usable', None)
@@ -312,7 +324,7 @@ class SessionService:
         check = version.get('check') if isinstance(version.get('check'), dict) else {}
         if version.get('profile_deleted'):
             reasons.append('execution_profile_deleted')
-        if version.get('adapter') != 'claude_code' or version.get('auth_mode') != 'cli_login':
+        if version.get('adapter') != 'claude_code' or version.get('auth_mode') not in ('cli_login', 'api_key'):
             reasons.append('execution_adapter_unsupported')
         if check.get('status') != 'passed':
             reasons.append('execution_test_required')
@@ -401,7 +413,7 @@ class SessionService:
             execution = {'profile_id': snapshot['profile_id'], 'profile_version_id': snapshot['profile_version_id'],
                          'image_id': snapshot['image_id'], 'cli_version': snapshot['cli_version'],
                          'limits': limits, 'capabilities': snapshot['capabilities'],
-                         'destination': dict(DESTINATION)}
+                         'destination': _destination(snapshot['auth_mode'])}
         private.update(snapshot=snapshot, limits=limits)
         return {'blocking_reasons': sorted(set(reasons)), 'warnings': sorted(set(warnings)), 'execution': execution}, private
 
@@ -703,7 +715,7 @@ class SessionService:
             'execution': {k: snapshot.get(k) for k in ('profile_id', 'profile_version_id', 'version', 'adapter', 'auth_mode',
                                                        'image', 'image_id', 'cli_version', 'allow_external_source', 'agent_model',
                                                        'checked_at')}
-                         | {'destination': dict(DESTINATION)},
+                         | {'destination': _destination(snapshot.get('auth_mode'))},
             'instructions': _loads(row['instructions_json'], {}), 'usage': _loads(row['usage_json'], {}),
             'publication': _loads(row['publication_json'], {}), 'outcome': _loads(row['outcome_json'], {}),
             'latest_seq': latest,

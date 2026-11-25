@@ -63,6 +63,51 @@ def is_loopback_host(host):
     return address == ipaddress.ip_address('::1')
 
 
+# Explicit network ranges, independent of Python's changing
+# classifications of special-purpose IP addresses.
+_LOCAL_NETWORKS = tuple(ipaddress.ip_network(network) for network in (
+    '127.0.0.0/8',
+    '10.0.0.0/8',
+    '172.16.0.0/12',
+    '192.168.0.0/16',
+    '100.64.0.0/10',
+    '169.254.0.0/16',
+    '::1/128',
+    'fc00::/7',
+    'fe80::/10',
+))
+
+
+def is_private_provider_host(host):
+    if host == 'localhost':
+        return True
+
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        return False
+
+    if '%' in host:
+        return False
+
+    return any(
+        address.version == network.version
+        and address in network
+        for network in _LOCAL_NETWORKS
+    )
+
+
+def is_private_provider_endpoint(url):
+    try:
+        parts = urlsplit(url)
+        return (
+            parts.scheme in ('http', 'https')
+            and is_private_provider_host(parts.hostname or '')
+        )
+    except (TypeError, ValueError):
+        return False
+
+
 def parse_ollama_url(value):
     """Normalize an Ollama base URL: http(s), ``localhost`` or a literal IP, no path or credentials."""
     if not isinstance(value, str) or not 1 <= len(value) <= 200 or value != value.strip():
@@ -77,17 +122,16 @@ def parse_ollama_url(value):
             or parts.path not in ('', '/') or parts.query or parts.fragment:
         raise ValueError('Use an address such as http://127.0.0.1:11434.')
     if host != 'localhost':
-        # A literal address cannot be redirected by DNS after the user vouched for it.
         try:
-            address = ipaddress.ip_address(host)
+            ipaddress.ip_address(host)
         except ValueError:
-            raise ValueError('Use an IP address for Ollama, not a host name.') from None
-        if address.is_unspecified or address.is_multicast:
-            raise ValueError('Use the IP address of the machine running Ollama.')
-        if address.is_global:
-            # Trusted as local and reached over plain http, so it must be on a private network
-            # (LAN, VPN such as Tailscale's 100.64.0.0/10, or link-local), never the public internet.
-            raise ValueError('Use a private network address (LAN or VPN such as Tailscale), not a public IP.')
+            raise ValueError(
+                'Use an IP address for Ollama, not a host name.'
+            ) from None
+
+    if not is_private_provider_host(host):
+        raise ValueError(
+            'Use a loopback or private network IP address for Ollama.')
     netloc = f'[{host}]' if ':' in host else host
     if port is not None:
         netloc += f':{port}'
@@ -102,6 +146,50 @@ def ollama_url():
         return DEFAULT_OLLAMA
 
 
+# Addresses (scheme, host, port) of Local providers the user saved on the AI providers page.
+# Only that exact address is the user's machine: other profiles on the same host stay remote.
+_trusted_origins = frozenset()
+
+
+def endpoint_origin(url):
+    """scheme://host:port with the default port filled in, or None for an unparsable URL."""
+    try:
+        parts = urlsplit(str(url).strip())
+        port = parts.port
+    except ValueError:
+        return None
+    scheme, host = parts.scheme.lower(), (parts.hostname or '').lower()
+    if scheme not in ('http', 'https') or not host:
+        return None
+    return f"{scheme}://{host}:{port or (443 if scheme == 'https' else 80)}"
+
+
+def set_trusted_endpoints(urls):
+    """Replace the trusted set with exactly these addresses (every saved Local provider)."""
+    global _trusted_origins
+    _trusted_origins = frozenset(
+        origin for url in urls
+        if is_private_provider_endpoint(url)
+        for origin in [endpoint_origin(url)]
+        if origin
+    )
+
+
+def is_trusted_endpoint(url, extra=()):
+    if not is_private_provider_endpoint(url):
+        return False
+
+    origin = endpoint_origin(url)
+    allowed = {
+        endpoint_origin(u) for u in extra
+        if is_private_provider_endpoint(u)
+    }
+
+    return origin is not None and (
+        origin in _trusted_origins or origin in allowed
+    )
+
+
 def is_local_host(host):
     """Loopback, or the one address the user configured for Ollama (e.g. their own machine on a VPN)."""
     if is_loopback_host(host):
@@ -112,7 +200,7 @@ def is_local_host(host):
         return False
 
 
-def validate_endpoint(value):
+def validate_endpoint(value, *, trusted=()):
     """Return the normalized endpoint base URL (no trailing slash)."""
     if not isinstance(value, str) or not 1 <= len(value) <= 2048 or value != value.strip():
         raise fail('endpoint')
@@ -129,7 +217,7 @@ def validate_endpoint(value):
         raise fail('endpoint')
     if parts.username is not None or parts.password is not None or parts.query or parts.fragment:
         raise fail('endpoint')
-    if scheme == 'http' and not is_local_host(host):
+    if scheme == 'http' and not (is_local_host(host) or is_trusted_endpoint(value, trusted)):
         raise fail('endpoint')
     path = parts.path.rstrip('/')
     if any(segment in ('.', '..') for segment in path.split('/')) or '%' in path:
@@ -143,7 +231,7 @@ def validate_endpoint(value):
 def destination_for(endpoint):
     parts = urlsplit(endpoint)
     host = parts.hostname or ''
-    return {'kind': 'local' if is_local_host(host) else 'remote',
+    return {'kind': 'local' if is_local_host(host) or is_trusted_endpoint(endpoint) else 'remote',
             'host': parts.netloc}
 
 
@@ -193,7 +281,7 @@ def validate_model(value):
     return _bounded_text(value, 'model', 200, allow_space=False)
 
 
-def validate_spec(spec, *, partial=False):
+def validate_spec(spec, *, partial=False, trusted=()):
     """Validate a create spec (all keys) or update spec (subset). Returns normalized dict."""
     if not isinstance(spec, dict):
         raise fail('spec')
@@ -212,7 +300,7 @@ def validate_spec(spec, *, partial=False):
             raise fail('adapter')
         result['adapter'] = spec['adapter']
     if 'endpoint' in spec:
-        result['endpoint'] = validate_endpoint(spec['endpoint'])
+        result['endpoint'] = validate_endpoint(spec['endpoint'], trusted=trusted)
     if 'model' in spec:
         result['model'] = validate_model(spec['model'])
     if 'config' in spec:

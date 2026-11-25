@@ -98,10 +98,13 @@ def _failure_code(event: dict) -> str:
     return "agent_error"
 
 
-def _environment() -> dict[str, str]:
-    # Do not inherit arbitrary tool/SDK hooks, provider credentials or debug knobs.
+def _environment(api_key: str | None = None) -> dict[str, str]:
+    # Do not inherit arbitrary tool/SDK hooks, provider credentials or debug knobs. The only
+    # credential a child sees is the API key an api_key-mode profile resolved from the vault.
     names = ("PATH", "HOME", "USER", "LOGNAME", "TMPDIR", "LANG", "LC_ALL", "ANTHROPIC_MODEL", "CLAUDE_CODE_EFFORT_LEVEL")
     env = {name: os.environ[name] for name in names if name in os.environ}
+    if api_key is not None:
+        env["ANTHROPIC_API_KEY"] = api_key
     for name in ("CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC", "CLAUDE_CODE_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL",
                  "CLAUDE_CODE_DISABLE_AUTO_MEMORY", "CLAUDE_CODE_DISABLE_POLICY_SKILLS", "CLAUDE_CODE_DISABLE_WORKFLOWS",
                  "CLAUDE_CODE_DISABLE_BACKGROUND_TASKS", "CLAUDE_CODE_DISABLE_AGENT_VIEW", "CLAUDE_CODE_DISABLE_REFUSAL_FALLBACK"):
@@ -125,7 +128,7 @@ class ClaudeAdapter:
             raise AdapterError("cli_unavailable")
         self.binary = str(Path(binary).resolve())
 
-    def _metadata(self, args, *, timeout_seconds, max_output_bytes, stop_event=None, deadline=None):
+    def _metadata(self, args, *, timeout_seconds, max_output_bytes, stop_event=None, deadline=None, api_key=None):
         """Each read-only CLI query gets a fresh private empty cwd.
 
         With a session stop_event/deadline (agent runs), the query observes the
@@ -146,7 +149,7 @@ class ClaudeAdapter:
             os.chmod(cwd, 0o700)
             result = run_stream(
                 [self.binary, "--setting-sources", "", *args], cwd=cwd,
-                env=_environment(), on_line=lines.append,
+                env=_environment(api_key), on_line=lines.append,
                 timeout_seconds=timeout_seconds, max_output_bytes=max_output_bytes,
                 stop_event=_ObservedStop(stop_event) if stop_event is not None else None,
             )
@@ -190,16 +193,22 @@ class ClaudeAdapter:
         if any(os.path.lexists(path) for path in paths):
             raise AdapterError("unsupported_managed_policy")
 
-    def _check_auth_profile(self, *, stop_event=None, deadline=None):
+    def _check_auth_profile(self, *, auth_mode="cli_login", api_key=None, stop_event=None, deadline=None):
         # Metadata comes from the CLI itself. Never open/copy its auth storage.
         try:
             result, output = self._metadata(["auth", "status"], timeout_seconds=10, max_output_bytes=16384,
-                                            stop_event=stop_event, deadline=deadline)
+                                            stop_event=stop_event, deadline=deadline, api_key=api_key)
             profile = json.loads(output)
         except (OSError, ValueError):
             raise AdapterError("authentication_unverified") from None
         if result.reason != "exited" or result.exit_code != 0 or not isinstance(profile, dict) or profile.get("loggedIn") is not True:
             raise AdapterError("authentication_required")
+        if auth_mode == "api_key":
+            # The key this adapter set, sent straight to Anthropic (no Bedrock/Vertex/proxy provider).
+            if (profile.get("authMethod") != "api_key" or profile.get("apiProvider") != "firstParty" or
+                profile.get("apiKeySource") != "ANTHROPIC_API_KEY"):
+                raise AdapterError("unsupported_auth_profile")
+            return {"method": "api_key", "personal_profile": False}
         if (profile.get("authMethod") != "claude.ai" or profile.get("apiProvider") != "firstParty" or
             profile.get("subscriptionType") not in ("pro", "max", "ultra")):
             raise AdapterError("unsupported_auth_profile")
@@ -258,6 +267,7 @@ class ClaudeAdapter:
         external_source_consent: bool = False, stop_event=None, on_started=None,
         timeout_seconds: float = 180, max_turns: int = 12,
         max_budget_usd: float = 1.0, max_output_bytes: int = 524288, model: str | None = None,
+        api_key: str | None = None,
     ) -> dict:
         """Run one attempt, revoking its required shared Event on every exit.
 
@@ -282,7 +292,7 @@ class ClaudeAdapter:
                 synthetic=synthetic, local_only=local_only,
                 external_source_consent=external_source_consent, stop_event=stop_event,
                 on_started=on_started, timeout_seconds=timeout_seconds, max_turns=max_turns,
-                max_budget_usd=max_budget_usd, max_output_bytes=max_output_bytes, model=model,
+                max_budget_usd=max_budget_usd, max_output_bytes=max_output_bytes, model=model, api_key=api_key,
             )
         except ProcessContainmentError:
             # Any process this attempt started (metadata query or agent) may still
@@ -300,9 +310,12 @@ class ClaudeAdapter:
         external_source_consent: bool = False, stop_event=None, on_started=None,
         timeout_seconds: float = 180, max_turns: int = 12,
         max_budget_usd: float = 1.0, max_output_bytes: int = 524288, model: str | None = None,
+        api_key: str | None = None,
     ) -> dict:
         """Internal single attempt; public run owns the whole-lifecycle stop guard."""
-        if auth_mode != "cli_login":
+        if auth_mode not in ("cli_login", "api_key") or (auth_mode == "api_key") != (api_key is not None) or (
+                api_key is not None and (not isinstance(api_key, str) or not api_key.strip() or len(api_key) > 512
+                                         or any(ord(c) < 33 or ord(c) == 127 for c in api_key))):
             raise AdapterError("unsupported_auth_mode")
         if any(type(value) is not bool for value in (synthetic, local_only, external_source_consent)):
             raise AdapterError("invalid_source_policy")
@@ -327,7 +340,7 @@ class ClaudeAdapter:
         deadline = time.monotonic() + timeout_seconds
         self._check_policy()
         try:
-            self._check_auth_profile(stop_event=stop_event, deadline=deadline)
+            self._check_auth_profile(auth_mode=auth_mode, api_key=api_key, stop_event=stop_event, deadline=deadline)
             disabled_plugins = self._disabled_plugins(stop_event=stop_event, deadline=deadline)
         except _PrelaunchInterrupted as interrupted:
             # Same projection as a stop/timeout observed before the agent spawned.
@@ -451,7 +464,7 @@ class ClaudeAdapter:
                     "--max-turns", str(max_turns), "--max-budget-usd", str(max_budget_usd)]
             if model is not None:
                 argv += ["--model", model]
-            environment = _environment()
+            environment = _environment(api_key)
             environment["CLAUDE_CODE_PLUGIN_CACHE_DIR"] = str(plugin_root)
             remaining = deadline - time.monotonic()
             if remaining <= 0:

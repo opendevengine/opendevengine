@@ -2,6 +2,7 @@ import { createAskPanel } from "./ask.js";
 import { createRepositoriesPage } from "./repositories.js";
 import { createSettingsPage } from "./settings.js";
 import { mountModels } from "./settings-models.js";
+import { createProvidersSection } from "./settings-providers.js";
 import { createSessionPanel, createExecutionSettings } from "./sessions.js";
 import { createShell } from "./shell.js";
 import { createSidePanel } from "./panel.js";
@@ -401,7 +402,7 @@ function routeFromHash() {
   if (hash === "" || hash === "#" || hash === "#/") return "ask";
   if (/^#\/(ask|plans)\/[^/]+(?:\/[^/]+)?$/.test(hash)) return "ask";
   if (/^#\/sessions\/[^/]+$/.test(hash)) return "sessions";
-  if (/^#\/settings\/(github|models|agent|privacy|health)(?:\?github=[a-z_]{1,64})?$/.test(hash)) return "settings";
+  if (/^#\/settings\/(github|providers|models|agent|privacy|health)(?:\?github=[a-z_]{1,64})?$/.test(hash)) return "settings";
   const match = /^#\/([a-z]+)(?:\?github=[a-z_]{1,64})?$/.exec(hash);
   return match && Object.hasOwn(ROUTES, match[1]) ? match[1] : null;
 }
@@ -864,9 +865,13 @@ modelsAdvanced.append(node("summary", "Advanced: all provider profiles"));
 modelsHost.append(modelsSimple, modelsAdvanced);
 // The job pickers and the profile list show the same profiles; a change in either refreshes both.
 function mountSimpleModels() { mountModels(modelsSimple, { request: featureRequest, onChange: loadProviders }); }
+// AI providers holds the old Models and Coding agent screens under Advanced, unchanged.
+const providersUI = createProvidersSection({ request: featureRequest, isVisible: () => state.route === "settings",
+  advanced: () => ({ models: modelsHost, agent: connectedUI.executionReady ? executionUI.element : null }) });
 function settingsSection() {
   const match = /^#\/settings\/([a-z]+)/.exec(location.hash);
-  return match ? match[1] : "github";
+  const section = match ? match[1] : "github";
+  return section === "models" || section === "agent" ? "providers" : section;
 }
 function renderSettings() {
   const focused = document.activeElement;
@@ -877,13 +882,13 @@ function renderSettings() {
     if (connectedUI.executionReady) byId("settings-content").append(executionUI.element);
   } else {
     settingsPage ||= createSettingsPage({ host: byId("settings-content"), request: featureRequest,
-      sections: { github: githubPanel, models: modelsHost, agent: null, health: healthHost }, onPrivacyChange: () => executionUI.refresh() });
+      sections: { github: githubPanel, providers: providersUI.element, health: healthHost },
+      onPrivacyChange: () => { executionUI.refresh(); providersUI.refresh(); } });
     if (providerPanel.parentNode !== modelsAdvanced) modelsAdvanced.append(providerPanel);
     settingsPage.mount();
     const code = (/[?&]github=([a-z_]{1,64})/.exec(location.hash) || [])[1] || "";
-    settingsPage.setAgent(connectedUI.executionReady ? executionUI.element : null);
     settingsPage.show(settingsSection(), { code });
-    if (settingsSection() === "models") mountSimpleModels();
+    if (settingsSection() === "providers") { providersUI.refresh(); mountSimpleModels(); }
   }
   if (restore && state.route === "settings" && focused?.isConnected) focused.focus();
 }
