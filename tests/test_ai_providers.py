@@ -56,7 +56,7 @@ class AIProvidersTests(unittest.TestCase):
 
         with patch.object(
             self.providers,
-            'update_settings',
+            '_update_settings_in_transaction',
             side_effect=RuntimeError('Injected failure'),
         ):
             with self.assertRaisesRegex(
@@ -70,6 +70,39 @@ class AIProvidersTests(unittest.TestCase):
 
         self.assertEqual(self.catalog.list(), [])
         self.assertEqual(self.vault.values, before)
+
+    def _assert_failed_add_preserves_privacy(self, local_only):
+        import sqlite3
+
+        self.providers.update_settings(local_only=local_only)
+        settings_before = self.providers.settings()
+        vault_before = dict(self.vault.values)
+
+        with self.platform.store.transaction() as db:
+            db.execute("""
+                CREATE TRIGGER reject_provider_insert
+                BEFORE INSERT ON ai_providers
+                BEGIN
+                    SELECT RAISE(ABORT, 'Injected insert failure');
+                END
+            """)
+
+        with self.assertRaisesRegex(
+            sqlite3.IntegrityError, 'Injected insert failure'
+        ):
+            self.catalog.add(
+                'claude', api_key=KEY, consent=True)
+
+        self.assertEqual(self.catalog.list(), [])
+        self.assertEqual(
+            self.providers.settings(), settings_before)
+        self.assertEqual(self.vault.values, vault_before)
+
+    def test_failed_add_preserves_local_only_mode(self):
+        self._assert_failed_add_preserves_privacy(True)
+
+    def test_failed_add_preserves_existing_remote_consent(self):
+        self._assert_failed_add_preserves_privacy(False)
 
     def test_remote_provider_requires_consent(self):
         self.code('consent_required', lambda: self.catalog.add('claude', api_key=KEY))

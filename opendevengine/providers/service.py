@@ -442,12 +442,18 @@ class ProviderService:
 
     @_storage_boundary
     def update_settings(self, *, local_only):
-        validate_flag(local_only, 'local_only')
         with self.store.transaction() as conn:
-            conn.execute("INSERT INTO provider_settings VALUES ('local_only',?,?) "
-                         'ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at',
-                         (canonical_json(local_only), self.clock()))
-            return {'local_only': self._persisted_local_only(conn)}
+            return self._update_settings_in_transaction(
+                conn, local_only=local_only)
+
+    def _update_settings_in_transaction(self, conn, *, local_only):
+        validate_flag(local_only, 'local_only')
+        conn.execute(
+            "INSERT INTO provider_settings VALUES ('local_only',?,?) "
+            'ON CONFLICT(key) DO UPDATE SET '
+            'value=excluded.value, updated_at=excluded.updated_at',
+            (canonical_json(local_only), self.clock()))
+        return {'local_only': self._persisted_local_only(conn)}
 
     @_storage_boundary
     def status_summary(self):
