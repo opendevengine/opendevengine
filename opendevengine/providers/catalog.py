@@ -300,22 +300,108 @@ class AIProviders:
         return result
 
     def remove(self, provider_id):
+        with self.store.read():
+            self._remove(provider_id)
+
+    def _remove(self, provider_id):
+        retired = set()
+
         with self.store.transaction() as db:
             row = self._row(db, provider_id)
             links = self._links(db, provider_id, 'provider')
-            coding = [link['profile_id'] for link in self._links(db, provider_id, 'execution')]
+            coding = self._links(db, provider_id, 'execution')
+
+            for link in coding:
+                profile_id = link['profile_id']
+
+                if self.execution_profiles is None:
+                    raise AIProviderError('coding_unavailable')
+
+                checks = db.execute(
+                    'SELECT j.id, j.state '
+                    'FROM execution_profile_checks c '
+                    'JOIN execution_profile_versions v '
+                    'ON v.id=c.version_id '
+                    'JOIN jobs j ON j.id=c.job_id '
+                    'WHERE v.profile_id=?',
+                    (profile_id,)).fetchall()
+
+                for check in checks:
+                    if check['state'] == 'needs_reconciliation':
+                        raise AIProviderError(
+                            'execution_test_reconciliation_required')
+                    if check['state'] == 'leased':
+                        raise AIProviderError(
+                            'coding_check_in_progress')
+
+                for check in checks:
+                    if check['state'] == 'queued':
+                        self.execution_profiles.jobs.cancel_in_transaction(
+                            db, check['id'])
+
+                self.execution_profiles._delete_in_transaction(
+                    db, profile_id)
+
+                retired.update(
+                    r[0] for r in db.execute(
+                        'SELECT DISTINCT secret_ref '
+                        'FROM execution_profile_versions '
+                        'WHERE profile_id=? '
+                        'AND secret_ref IS NOT NULL',
+                        (profile_id,)))
+
+            for link in links:
+                profile_id = link['profile_id']
+
+                exists = db.execute(
+                    'SELECT id FROM provider_profiles WHERE id=?',
+                    (profile_id,)).fetchone()
+
+                if exists is not None:
+                    retired.update(
+                        self.providers._delete_profile_in_transaction(
+                            db, profile_id))
+
+            if row['secret_ref']:
+                retired.add(row['secret_ref'])
+
             for table in ('ai_job_choices', 'ai_provider_profiles'):
-                db.execute(f'DELETE FROM {table} WHERE provider_id=?', (provider_id,))
-            db.execute('DELETE FROM ai_providers WHERE id=?', (provider_id,))
+                db.execute(
+                    f'DELETE FROM {table} WHERE provider_id=?',
+                    (provider_id,))
+
+            db.execute(
+                'DELETE FROM ai_providers WHERE id=?',
+                (provider_id,))
+
+            # Preserve the existing summary fallback behavior.
+            if 'summary' not in self._choices(db):
+                roles = {
+                    r['role']: r['profile_id']
+                    for r in db.execute(
+                        'SELECT role, profile_id '
+                        'FROM model_role_assignments')
+                }
+
+                if roles.get('summary') != roles.get('planning'):
+                    self.providers._assign(
+                        db, 'summary', roles.get('planning'))
+
+            # Old credentials become unusable at commit.
+            for ref in retired:
+                db.execute(
+                    'UPDATE secret_refs SET revoked_at=? '
+                    'WHERE id=? AND revoked_at IS NULL',
+                    (self.clock(), ref))
+
+        # Physical vault cleanup must happen after commit.
+        for ref in retired:
+            try:
+                self.secrets.revoke(ref)
+            except Exception:
+                pass
+
         self.refresh_trust()
-        for link in links:
-            if self._live_provider_profile(link['profile_id']):
-                self.providers.delete_profile(link['profile_id'])
-        for profile_id in coding:
-            self._retire_execution(profile_id)
-        if row['secret_ref']:
-            self.secrets.revoke(row['secret_ref'])
-        self._summary_follows_plans()
 
     # ----- profiles behind a job ---------------------------------------------------------
 

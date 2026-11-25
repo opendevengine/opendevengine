@@ -282,11 +282,14 @@ class ExecutionProfileService:
     @_storage_boundary
     def delete(self, ident):
         with self.store.transaction() as db:
-            row = self._row(db, 'execution_profiles', ident)
-            if row['deleted_at'] is None:
-                now = self.clock()
-                db.execute('UPDATE execution_profiles SET deleted_at=?,updated_at=? WHERE id=?', (now, now, ident))
-            return self._public(db, self._row(db, 'execution_profiles', ident))
+            return self._delete_in_transaction(db, ident)
+
+    def _delete_in_transaction(self, db, ident):
+        row = self._row(db, 'execution_profiles', ident)
+        if row['deleted_at'] is None:
+            now = self.clock()
+            db.execute('UPDATE execution_profiles SET deleted_at=?,updated_at=? WHERE id=?', (now, now, ident))
+        return self._public(db, self._row(db, 'execution_profiles', ident))
 
     @_storage_boundary
     def get(self, ident):

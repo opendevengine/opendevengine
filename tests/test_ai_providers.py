@@ -434,6 +434,129 @@ class AIProvidersTests(unittest.TestCase):
             self.profiles.version_api_key(coding_before)  # old ref revoked
         self.assertNotIn(KEY.encode(), list(self.vault.values.values()))
 
+    def _deletion_snapshot(self):
+        result = self._rotation_snapshot()
+
+        with self.platform.store.read() as db:
+            for table in (
+                'ai_provider_profiles',
+                'ai_job_choices',
+                'model_role_assignments',
+                'provider_settings',
+            ):
+                result[table] = sorted(
+                    repr(tuple(r))
+                    for r in db.execute('SELECT * FROM ' + table))
+
+        return result
+
+    def _deletion_fixture(self):
+        provider = self.claude()
+        self.catalog.choose(
+            'plans', provider['id'], 'claude-sonnet-5-5')
+        self.catalog.choose(
+            'coding', provider['id'], 'sonnet')
+        return provider
+
+    def _assert_deletion_rollback(self, service, method):
+        from unittest.mock import patch
+
+        provider = self._deletion_fixture()
+        before = self._deletion_snapshot()
+        vault_before = dict(self.vault.values)
+
+        with patch.object(
+            service, method,
+            side_effect=RuntimeError('Injected deletion failure')
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError, 'Injected deletion failure'
+            ):
+                self.catalog.remove(provider['id'])
+
+        self.assertEqual(self._deletion_snapshot(), before)
+        self.assertEqual(self.vault.values, vault_before)
+
+    def test_deletion_rolls_back_on_chat_failure(self):
+        self._assert_deletion_rollback(
+            self.providers, '_delete_profile_in_transaction')
+
+    def test_deletion_rolls_back_on_execution_failure(self):
+        self._assert_deletion_rollback(
+            self.profiles, '_delete_in_transaction')
+
+    def test_deletion_rolls_back_on_database_failure(self):
+        import sqlite3
+
+        provider = self._deletion_fixture()
+        before = self._deletion_snapshot()
+        vault_before = dict(self.vault.values)
+
+        with self.platform.store.transaction() as db:
+            db.execute("""
+                CREATE TRIGGER reject_provider_delete
+                BEFORE DELETE ON ai_providers
+                BEGIN
+                    SELECT RAISE(ABORT, 'Injected delete failure');
+                END
+            """)
+
+        with self.assertRaisesRegex(
+            sqlite3.IntegrityError, 'Injected delete failure'
+        ):
+            self.catalog.remove(provider['id'])
+
+        self.assertEqual(self._deletion_snapshot(), before)
+        self.assertEqual(self.vault.values, vault_before)
+
+    def test_deletion_rejects_running_execution_check(self):
+        provider = self._deletion_fixture()
+
+        lease = self.platform.jobs.claim(
+            'fixture-worker', kinds=['execution.test'])
+        self.assertIsNotNone(lease)
+
+        before = self._deletion_snapshot()
+        vault_before = dict(self.vault.values)
+
+        self.code(
+            'coding_check_in_progress',
+            lambda: self.catalog.remove(provider['id']))
+
+        self.assertEqual(self._deletion_snapshot(), before)
+        self.assertEqual(self.vault.values, vault_before)
+
+    def test_deletion_cancels_check_and_restores_summary(self):
+        local = self.local()
+        self.catalog.choose('plans', local['id'], 'qwen3:8b')
+
+        provider = self.claude()
+        self.catalog.choose(
+            'summary', provider['id'], 'claude-sonnet-5-5')
+        self.catalog.choose('coding', provider['id'], 'sonnet')
+
+        with self.platform.store.read() as db:
+            job_id = db.execute(
+                "SELECT id FROM jobs WHERE kind='execution.test' "
+                "AND state='queued'").fetchone()[0]
+
+        self.catalog.remove(provider['id'])
+
+        self.assertEqual(
+            self.platform.jobs.get(job_id).state, 'cancelled')
+
+        roles = self.providers.roles()
+
+        self.assertEqual(
+            roles['summary']['profile_id'],
+            roles['planning']['profile_id'])
+
+        self.assertEqual(
+            self.catalog.jobs()['summary']['provider_id'],
+            local['id'])
+
+        self.assertEqual(self.vault.values, {})
+
     def test_remove_provider_clears_jobs(self):
         provider = self.claude()
         self.catalog.choose('plans', provider['id'], 'claude-sonnet-5-5')

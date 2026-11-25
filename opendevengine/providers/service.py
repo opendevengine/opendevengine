@@ -340,20 +340,40 @@ class ProviderService:
     @_storage_boundary
     def delete_profile(self, profile_id):
         with self.store.transaction() as conn:
-            profile = self._profile_row(conn, profile_id)
-            now = self.clock()
-            if profile['deleted_at'] is None:
-                conn.execute('UPDATE provider_profiles SET deleted_at=?, updated_at=? WHERE id=?',
-                             (now, now, profile_id))
-            conn.execute('DELETE FROM model_role_assignments WHERE profile_id=?', (profile_id,))
-            refs = [r[0] for r in conn.execute(
-                'SELECT DISTINCT secret_ref FROM provider_profile_versions WHERE profile_id=? AND secret_ref IS NOT NULL',
-                (profile_id,))]
-            self._mark_owned_refs_revoked(conn, profile_id, now)
+            refs = self._delete_profile_in_transaction(
+                conn, profile_id)
+
         for ref_id in refs:
             self._revoke_quietly(ref_id)
+
         with self.store.read() as conn:
-            return self._profile_public(conn, self._profile_row(conn, profile_id))
+            return self._profile_public(
+                conn, self._profile_row(conn, profile_id))
+
+    def _delete_profile_in_transaction(self, conn, profile_id):
+        profile = self._profile_row(conn, profile_id)
+        now = self.clock()
+
+        if profile['deleted_at'] is None:
+            conn.execute(
+                'UPDATE provider_profiles '
+                'SET deleted_at=?, updated_at=? WHERE id=?',
+                (now, now, profile_id))
+
+        conn.execute(
+            'DELETE FROM model_role_assignments WHERE profile_id=?',
+            (profile_id,))
+
+        refs = [
+            r[0] for r in conn.execute(
+                'SELECT DISTINCT secret_ref '
+                'FROM provider_profile_versions '
+                'WHERE profile_id=? AND secret_ref IS NOT NULL',
+                (profile_id,))
+        ]
+
+        self._mark_owned_refs_revoked(conn, profile_id, now)
+        return refs
 
     @_storage_boundary
     def list_profiles(self):
