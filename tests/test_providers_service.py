@@ -100,10 +100,10 @@ class ProviderTests(unittest.TestCase):
         from opendevengine.providers import validation
         self.addCleanup(validation.set_trusted_endpoints, [])
         self.assertEqual(validation.destination_for('http://100.64.0.9:1234/v1')['kind'], 'remote')
-        validation.set_trusted_endpoints(['http://100.64.0.9:1234', 'http://Studio.Lan:1234/v1'])
+        validation.set_trusted_endpoints(['http://100.64.0.9:1234', 'http://192.168.1.20:1234/v1'])
         self.assertEqual(validation.destination_for('http://100.64.0.9:1234/v1')['kind'], 'local')
-        self.assertEqual(validation.destination_for('http://studio.lan:1234/v1')['kind'], 'local')
-        self.assertEqual(validation.validate_endpoint('http://studio.lan:1234/v1'), 'http://studio.lan:1234/v1')
+        self.assertEqual(validation.destination_for('http://192.168.1.20:1234/v1')['kind'], 'local')
+        self.assertEqual(validation.validate_endpoint('http://192.168.1.20:1234/v1'), 'http://192.168.1.20:1234/v1')
 
     def test_trusted_hosts_are_reference_counted(self):
         from opendevengine.providers import validation

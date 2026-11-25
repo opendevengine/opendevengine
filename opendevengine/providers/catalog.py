@@ -14,7 +14,8 @@ from .claude_cli import ENDPOINT as CLAUDE_CLI_ENDPOINT
 from .discovery import probe_embedding_dimensions
 from .errors import ProfileNameConflict
 from .validation import (set_trusted_endpoints, validate_endpoint,
-                         validate_secret_value, validate_spec)
+                         validate_secret_value, validate_spec,
+                         is_private_provider_endpoint)
 
 KINDS = ('claude', 'codex', 'local')
 JOBS = ('plans', 'coding', 'search', 'summary')
@@ -85,8 +86,13 @@ class AIProviders:
             return OPENAI_V1
         if not isinstance(endpoint, str) or not endpoint.strip():
             raise AIProviderError('validation')
+        if kind == 'local' and not is_private_provider_endpoint(
+            endpoint.strip()
+        ):
+            raise AIProviderError('local_endpoint_required')
+
         try:
-            # A Local address the user typed is theirs; check it without trusting it globally yet.
+            # Validate the private endpoint without trusting it globally yet.
             value = validate_endpoint(endpoint.strip(), trusted=[endpoint.strip()] if kind == 'local' else [])
         except PlatformError:
             raise AIProviderError('validation') from None

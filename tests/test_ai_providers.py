@@ -125,6 +125,111 @@ class AIProvidersTests(unittest.TestCase):
         self.assertNotIn(KEY, stored + public)
         self.assertIs(self.catalog.list()[0]['has_key'], True)
 
+    def test_public_endpoints_rejected_as_local(self):
+        for endpoint in (
+            'http://api.openai.com/v1',
+            'https://api.openai.com/v1',
+            'http://8.8.8.8/v1',
+            'https://8.8.8.8/v1',
+            'http://studio.lan/v1',
+            'http://0.0.0.0/v1',
+            'http://224.0.0.1/v1',
+            'http://192.0.2.1/v1',
+            'http://[2001:4860:4860::8888]/v1',
+        ):
+            with self.subTest(endpoint=endpoint):
+                self.code(
+                    'local_endpoint_required',
+                    lambda: self.catalog.add(
+                        'local',
+                        endpoint=endpoint,
+                        adapter='openai_compatible',
+                        api_key=KEY))
+
+        self.assertEqual(self.catalog.list(), [])
+        self.assertEqual(self.vault.values, {})
+        self.assertTrue(
+            self.providers.settings()['local_only'])
+
+    def test_private_network_endpoints_remain_supported(self):
+        for host in (
+            'localhost',
+            '127.0.0.1',
+            '10.0.0.10',
+            '172.16.0.10',
+            '192.168.1.10',
+            '100.64.0.10',
+            '169.254.1.10',
+            '[::1]',
+            '[fd00::10]',
+        ):
+            with self.subTest(host=host):
+                endpoint = 'http://' + host + ':11434'
+                provider = self.local(endpoint=endpoint)
+
+                self.assertEqual(
+                    validation.destination_for(endpoint)['kind'],
+                    'local')
+
+                self.catalog.remove(provider['id'])
+
+    def test_public_endpoint_update_preserves_configuration(self):
+        provider = self.local()
+        self.catalog.choose(
+            'plans', provider['id'], 'qwen3:8b')
+
+        before = self._deletion_snapshot()
+
+        self.code(
+            'local_endpoint_required',
+            lambda: self.catalog.update(
+                provider['id'],
+                endpoint='https://8.8.8.8'))
+
+        self.assertEqual(self._deletion_snapshot(), before)
+
+    def test_legacy_public_endpoint_is_not_trusted_on_restart(self):
+        provider = self.local()
+        endpoint = 'https://api.openai.com/v1'
+
+        with self.platform.store.transaction() as db:
+            db.execute(
+                'UPDATE ai_providers SET endpoint=? WHERE id=?',
+                (endpoint, provider['id']))
+
+        AIProviders(
+            self.platform.store,
+            self.secrets,
+            self.providers,
+            self.profiles)
+
+        self.assertEqual(
+            validation.destination_for(endpoint)['kind'],
+            'remote')
+
+        self.assertEqual(
+            self.catalog.list()[0]['endpoint'], endpoint)
+
+        self.assertTrue(
+            self.providers.settings()['local_only'])
+
+    def test_explicit_trust_cannot_override_public_address(self):
+        endpoint = 'http://8.8.8.8/v1'
+
+        validation.set_trusted_endpoints([endpoint])
+
+        self.assertFalse(
+            validation.is_trusted_endpoint(
+                endpoint, extra=[endpoint]))
+
+        with self.assertRaises(Exception):
+            validation.validate_endpoint(
+                endpoint, trusted=[endpoint])
+
+        self.assertEqual(
+            validation.destination_for(endpoint)['kind'],
+            'remote')
+
     def test_local_provider_is_trusted(self):
         provider = self.local()
         self.assertTrue(self.providers.settings()['local_only'])  # no consent needed or asked
@@ -147,12 +252,12 @@ class AIProvidersTests(unittest.TestCase):
 
     def test_local_provider_trusts_only_its_own_address(self):
         handmade = self.providers.create_profile({'name': 'hosted', 'adapter': 'openai_compatible',
-                                                  'endpoint': 'https://api.openai.com/v1', 'model': 'm',
+                                                  'endpoint': 'https://192.168.1.20/v1', 'model': 'm',
                                                   'config': {'capabilities': ['chat']}})
-        self.catalog.add('local', endpoint='http://api.openai.com/v1', adapter='openai_compatible')
-        self.assertEqual(validation.destination_for('https://api.openai.com/v1')['kind'], 'remote')
-        self.assertEqual(validation.destination_for('http://api.openai.com:8080/v1')['kind'], 'remote')
-        self.assertEqual(validation.destination_for('http://api.openai.com/v1')['kind'], 'local')
+        self.catalog.add('local', endpoint='http://192.168.1.20/v1', adapter='openai_compatible')
+        self.assertEqual(validation.destination_for('https://192.168.1.20/v1')['kind'], 'remote')
+        self.assertEqual(validation.destination_for('http://192.168.1.20:8080/v1')['kind'], 'remote')
+        self.assertEqual(validation.destination_for('http://192.168.1.20/v1')['kind'], 'local')
         self.assertTrue(self.providers.settings()['local_only'])
         with self.assertRaises(Exception):
             self.providers.assign_role('planning', handmade['id'])
