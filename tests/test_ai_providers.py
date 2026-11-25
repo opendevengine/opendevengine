@@ -206,6 +206,40 @@ class AIProvidersTests(unittest.TestCase):
         self.code('validation', lambda: self.catalog.add('codex', consent=True))
         self.code('validation', lambda: self.catalog.add('local'))
 
+    def test_failed_rotation_preserves_original_key(self):
+        import sqlite3
+
+        provider = self.claude()
+        before = dict(self.vault.values)
+
+        with self.platform.store.transaction() as db:
+            db.execute("""
+                CREATE TRIGGER reject_provider_update
+                BEFORE UPDATE ON ai_providers
+                BEGIN
+                    SELECT RAISE(ABORT, 'Injected rotation failure');
+                END
+            """)
+
+        with self.assertRaisesRegex(
+            sqlite3.IntegrityError, 'Injected rotation failure'
+        ):
+            self.catalog.update(
+                provider['id'],
+                api_key='synthetic-rotated-key',
+            )
+
+        self.assertEqual(self.catalog.list(), [provider])
+
+        with self.platform.store.read() as db:
+            ref = db.execute(
+                'SELECT secret_ref FROM ai_providers WHERE id=?',
+                (provider['id'],),
+            ).fetchone()[0]
+
+        self.assertEqual(self.secrets.resolve(ref).reveal(), KEY)
+        self.assertEqual(self.vault.values, before)
+
     def test_rotate_key_updates_chat_and_coding(self):
         provider = self.claude()
         self.catalog.choose('plans', provider['id'], 'claude-sonnet-5-5')

@@ -157,12 +157,20 @@ class AIProviders:
                 raise AIProviderError('validation')
             changes['endpoint'] = self._endpoint(row['kind'], endpoint, row['adapter'])
         new_ref = self.secrets.create('provider_api_key', f'ai-provider:{provider_id}', api_key).id if api_key else None
-        with self.store.transaction() as db:
-            db.execute('UPDATE ai_providers SET endpoint=coalesce(?,endpoint), secret_ref=coalesce(?,secret_ref), '
-                       'updated_at=? WHERE id=?', (changes.get('endpoint'), new_ref, self.clock(), provider_id))
-            links = self._links(db, provider_id, 'provider')
-            coding = self._links(db, provider_id, 'execution')
-            managed = self._managed(db)
+        try:
+            with self.store.transaction() as db:
+                db.execute('UPDATE ai_providers SET endpoint=coalesce(?,endpoint), secret_ref=coalesce(?,secret_ref), '
+                           'updated_at=? WHERE id=?', (changes.get('endpoint'), new_ref, self.clock(), provider_id))
+                links = self._links(db, provider_id, 'provider')
+                coding = self._links(db, provider_id, 'execution')
+                managed = self._managed(db)
+        except Exception:
+            if new_ref:
+                try:
+                    self.secrets.revoke(new_ref)
+                except Exception:
+                    pass
+            raise
         if new_ref:
             self.secrets.revoke(row['secret_ref'])
         self.refresh_trust()
